@@ -1,2 +1,2 @@
 # ExtraClases-ANPI
-En este repositorio es destinado para sincronizar todas las partes de los trabajos extraclase del curso Analisis numerico para la Ingeniería.
+Repositorio para los trabajos extraclases del curso ANPI (CE-1111) de Computadores
