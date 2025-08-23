@@ -2,14 +2,11 @@ import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Configuración inicial
-sp.init_printing()
-plt.style.use('seaborn-v0_8')
-
 # Definir variable y función
 x = sp.symbols('x')
 f_expr = (x ** 3 - 3 * x ** 2 + 3 * x - 1) / (x ** 2 - 2 * x)
 f_expr = sp.simplify(f_expr)
+
 
 print("=" * 60)
 print("ANÁLISIS DE LA FUNCIÓN")
@@ -19,65 +16,55 @@ print()
 
 
 def analizar_funcion(f):
-    """Analiza completamente una función racional"""
-
-    # (a) Dominio de la función
-    dominio = sp.calculus.util.continuous_domain(f, x, sp.S.Reals)
-
-    # Factorizar numerador y denominador
     num, den = sp.fraction(sp.together(f))
-    num_factorizado = sp.factor(num)
-    den_factorizado = sp.factor(den)
-
-    # (b) Intersecciones
-    # Intersecciones con eje x (raíces del numerador, excluyendo puntos no definidos)
-    x_intersecciones = []
-    raices_num = sp.solve(sp.Eq(num, 0), x)
-    for raiz in raices_num:
-        if den.subs(x, raiz) != 0:  # Verificar que el punto esté en el dominio
-            x_intersecciones.append(raiz)
-
-    # Intersección con eje y
-    y_interseccion = None
-    if 0 in dominio:  # Verificar si x=0 está en el dominio
-        y_interseccion = f.subs(x, 0)
-
-    # (c) Asíntotas
-    # Asíntotas verticales (raíces del denominador)
-    asint_verticales = sp.solve(sp.Eq(den, 0), x)
-
-    # Asíntotas horizontales/oblicuas
-    grado_num = sp.degree(num, x)
-    grado_den = sp.degree(den, x)
-
-    asint_horizontal = None
-    asint_oblicua = None
-
-    if grado_num < grado_den:
-        asint_horizontal = 0
-    elif grado_num == grado_den:
-        coef_num = sp.LC(num, x)
-        coef_den = sp.LC(den, x)
-        asint_horizontal = coef_num / coef_den
-    else:  # grado_num > grado_den
-        cociente, resto = sp.div(num, den)
-        asint_oblicua = cociente
-
-    # (d) Derivadas
-    f_prima = sp.simplify(sp.diff(f, x))
-    f_segunda = sp.simplify(sp.diff(f_prima, x))
-
+    numfactor, denfactor = sp.factor(num), sp.factor(den)
+    dominio = dominio_funcion(f)
+    x_int, y_int = intersecciones_funcion(f, numfactor, denfactor, dominio)
+    asint_vert, asint_horiz, asint_oblicua = asintotas_funcion(numfactor, denfactor)
+    f_prima, f_segunda = derivadas_funcion(f)
     return {
         'dominio': dominio,
-        'x_intersecciones': x_intersecciones,
-        'y_interseccion': y_interseccion,
-        'asint_verticales': asint_verticales,
-        'asint_horizontal': asint_horizontal,
+        'x_intersecciones': x_int,
+        'y_interseccion': y_int,
+        'asint_verticales': asint_vert,
+        'asint_horizontal': asint_horiz,
         'asint_oblicua': asint_oblicua,
         'f_prima': f_prima,
         'f_segunda': f_segunda,
-        'puntos_indefinidos': asint_verticales
+        'puntos_indefinidos': asint_vert
     }
+
+def dominio_funcion(f):
+    return sp.calculus.util.continuous_domain(f, x, sp.S.Reals)
+
+def intersecciones_funcion(f, num, den, dominio):
+    x_intersecciones = []
+    raices_num = sp.solve(sp.Eq(num, 0), x)
+    for raiz in raices_num:
+        if den.subs(x, raiz) != 0:
+            x_intersecciones.append(raiz)
+    y_interseccion = f.subs(x, 0) if 0 in dominio else None
+    return x_intersecciones, y_interseccion
+
+def asintotas_funcion(num, den):
+    asint_verticales = sp.solve(sp.Eq(den, 0), x)
+    grado_num = sp.degree(num, x)
+    grado_den = sp.degree(den, x)
+    asint_horizontal, asint_oblicua = None, None
+    if grado_num < grado_den:
+        asint_horizontal = 0
+    elif grado_num == grado_den:
+        asint_horizontal = sp.LC(num, x) / sp.LC(den, x)
+    else:
+        asint_oblicua = sp.div(num, den)[0]
+    return asint_verticales, asint_horizontal, asint_oblicua
+
+def derivadas_funcion(f):
+    f_prima = sp.simplify(sp.diff(f, x))
+    f_segunda = sp.simplify(sp.diff(f_prima, x))
+    return f_prima, f_segunda
+
+
 
 
 def analizar_monotonia(f_prima, puntos_indefinidos):
