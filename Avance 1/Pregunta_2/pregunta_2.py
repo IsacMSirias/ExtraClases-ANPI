@@ -4,6 +4,24 @@ import matplotlib.pyplot as plt
 
 
 def analisis_completo(f):
+    """
+    Realiza un análisis completo de una función racional.
+
+    Parámetros:
+        f : expresión simbólica de SymPy
+            Función a analizar de la forma P(x)/Q(x)
+
+    Retorna:
+        Diccionario con todos los resultados del análisis que incluye:
+            - función simplificada
+            - dominio
+            - intersecciones con ejes
+            - asíntotas
+            - derivadas
+            - intervalos de monotonia
+            - intervalos de concavidad
+    """
+
     f_simp = sp.simplify(f)
 
     num, den = sp.fraction(sp.together(f_simp))
@@ -39,10 +57,38 @@ def analisis_completo(f):
 
 
 def dominio_funcion(f):
-    """Obtiene el dominio de la función"""
+    """
+    Determina el dominio de una función.
+
+    Parámetros:
+        f : expresión simbólica de SymPy
+            Función cuyo dominio se quiere encontrar
+
+    Retorna:
+        Conjunto de números reales donde la función es continua
+    """
     return sp.calculus.util.continuous_domain(f, x, sp.S.Reals)
 
 def intersecciones_funcion(f, num, den, dominio):
+    """
+    Encuentra las intersecciones de la función con los ejes coordenados.
+
+    Parámetros:
+         f : expresión simbólica
+            Función a analizar
+         num : expresión simbólica
+             Numerador de la función simplificada
+         den : expresión simbólica
+             Denominador de la función simplificada
+         dominio : set
+             Dominio de la función
+
+    Retorna:
+        tuple: (intersecciones_x, interseccion_y) donde:
+        intersecciones_x: lista de puntos de corte con el eje X
+        interseccion_y: punto de corte con el eje Y o None si no existe
+    """
+
     x_intersecciones = []
 
     try:
@@ -61,6 +107,21 @@ def intersecciones_funcion(f, num, den, dominio):
     return x_intersecciones, y_interseccion
 
 def asintotas_funcion(num, den):
+    """
+    Determina las asíntotas de una función racional.
+
+    Parámetros:
+        num : expresión simbólica
+            Numerador de la función
+        den : expresión simbólica
+            Denominador de la función
+
+    Retorna:
+        tuple: (asint_verticales, asint_horizontal, asint_oblicua) donde:
+            asint_verticales: lista de asíntotas verticales
+            asint_horizontal: asíntota horizontal o None si no existe
+            asint_oblicua: asíntota oblicua o None si no existe
+    """
 
     asint_verticales = []
     try:
@@ -88,13 +149,36 @@ def asintotas_funcion(num, den):
 
 
 def derivadas_funcion(f):
+    """
+    Calcula la primera y segunda derivada de una función.
+
+    Parámetros:
+        f : expresión simbólica
+            Función a derivar
+
+    Retorna:
+        tuple: (f_prima, f_segunda) donde:
+            f_prima: primera derivada de f
+            f_segunda: segunda derivada de f
+    """
     f_prima = sp.simplify(sp.diff(f, x))
     f_segunda = sp.simplify(sp.diff(f_prima, x))
     return f_prima, f_segunda
 
 def analizar_signo(f,puntos_discontinuidad):
     """
-    Analiza el signo de una función en intervalos definidos por puntos críticos
+    Analiza el signo de una función en intervalos definidos por puntos críticos.
+
+    Parámetros:
+        f : expresión simbólica
+            Función cuyo signo se quiere analizar
+        puntos_discontinuidad : list
+            Puntos donde la función no está definida
+
+    Retorna:
+        tuple: (intervalos_positivos, intervalos_negativos) donde:
+            intervalos_positivos: lista de tuplas (a, b) donde f(x) > 0
+            intervalos_negativos: lista de tuplas (a, b) donde f(x) < 0
     """
 
     puntos_cero = []
@@ -144,11 +228,38 @@ def analizar_signo(f,puntos_discontinuidad):
     return creciente, decreciente
 
 def analizar_monotonia(f_prima, puntos_indefinidos):
-    """Analiza intervalos de crecimiento y decrecimiento"""
+    """
+    Analiza los intervalos donde la función es creciente o decreciente.
+
+    Parámetros:
+        f_prima : expresión simbólica
+            Primera derivada de la función
+        puntos_indefinidos : list
+            Puntos donde la función original no está definida
+
+    Retorna:
+        tuple: (intervalos_creciente, intervalos_decreciente) donde:
+            intervalos_creciente: intervalos donde f'(x) > 0
+            intervalos_decreciente: intervalos donde f'(x) < 0
+    """
     return analizar_signo(f_prima, puntos_indefinidos)
 
 def analizar_concavidad(f_segunda, puntos_indefinidos):
-    """Analiza concavidad de la función"""
+    """
+    Analiza la concavidad de la función.
+
+    Parámetros:
+        f_segunda : expresión simbólica
+            Segunda derivada de la función
+        puntos_indefinidos : list
+            Puntos donde la función original no está definida
+
+    Retorna:
+        tuple: (intervalos_concava_arriba, intervalos_concava_abajo) donde:
+            intervalos_concava_arriba: intervalos donde f''(x) > 0
+            intervalos_concava_abajo: intervalos donde f''(x) < 0
+    """
+
     return analizar_signo(f_segunda, puntos_indefinidos)
 
 
