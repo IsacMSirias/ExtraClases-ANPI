@@ -2,27 +2,27 @@ import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Definir variable y función
-x = sp.symbols('x')
-f_expr = (x ** 3 - 3 * x ** 2 + 3 * x - 1) / (x ** 2 - 2 * x)
-f_expr = sp.simplify(f_expr)
 
+def analisis_completo(f):
+    f_simp = sp.simplify(f)
 
-print("=" * 60)
-print("ANÁLISIS DE LA FUNCIÓN")
-print("=" * 60)
-print(f"f(x) = {sp.pretty(f_expr)}")
-print()
-
-
-def analizar_funcion(f):
-    num, den = sp.fraction(sp.together(f))
+    num, den = sp.fraction(sp.together(f_simp))
     numfactor, denfactor = sp.factor(num), sp.factor(den)
+
+
     dominio = dominio_funcion(f)
     x_int, y_int = intersecciones_funcion(f, numfactor, denfactor, dominio)
     asint_vert, asint_horiz, asint_oblicua = asintotas_funcion(numfactor, denfactor)
     f_prima, f_segunda = derivadas_funcion(f)
+
+    puntos_indefinidos = asint_vert
+
+    # Análisis de monotonia y concavidad
+    creciente, decreciente = analizar_monotonia(f_prima, puntos_indefinidos)
+    concava_arriba, concava_abajo = analizar_concavidad(f_segunda, puntos_indefinidos)
+
     return {
+        'funcion': f_expr,
         'dominio': dominio,
         'x_intersecciones': x_int,
         'y_interseccion': y_int,
@@ -31,72 +31,93 @@ def analizar_funcion(f):
         'asint_oblicua': asint_oblicua,
         'f_prima': f_prima,
         'f_segunda': f_segunda,
-        'puntos_indefinidos': asint_vert
+        'creciente': creciente,
+        'decreciente': decreciente,
+        'concava_arriba': concava_arriba,
+        'concava_abajo': concava_abajo,
     }
 
+
 def dominio_funcion(f):
+    """Obtiene el dominio de la función"""
     return sp.calculus.util.continuous_domain(f, x, sp.S.Reals)
 
 def intersecciones_funcion(f, num, den, dominio):
     x_intersecciones = []
-    raices_num = sp.solve(sp.Eq(num, 0), x)
-    for raiz in raices_num:
-        if den.subs(x, raiz) != 0:
-            x_intersecciones.append(raiz)
-    y_interseccion = f.subs(x, 0) if 0 in dominio else None
+
+    try:
+        raices_num = sp.solve(sp.Eq(num, 0), x)
+        for raiz in raices_num:
+            if den.subs(x, raiz) != 0:
+                x_intersecciones.append(raiz)
+    except:
+        pass
+    y_interseccion = None
+    try:
+        if 0 in dominio:
+            y_interseccion= f.subs(x, 0)
+    except:
+        pass
     return x_intersecciones, y_interseccion
 
 def asintotas_funcion(num, den):
-    asint_verticales = sp.solve(sp.Eq(den, 0), x)
-    grado_num = sp.degree(num, x)
-    grado_den = sp.degree(den, x)
-    asint_horizontal, asint_oblicua = None, None
-    if grado_num < grado_den:
-        asint_horizontal = 0
-    elif grado_num == grado_den:
-        asint_horizontal = sp.LC(num, x) / sp.LC(den, x)
-    else:
-        asint_oblicua = sp.div(num, den)[0]
+
+    asint_verticales = []
+    try:
+        asint_verticales = sp.solve(sp.Eq(den, 0), x)
+    except:
+        pass
+
+    asint_oblicua = None
+    asint_horizontal= None
+
+    try:
+        grado_num = sp.degree(num, x)
+        grado_den = sp.degree(den, x)
+
+        if grado_num < grado_den:
+            asint_horizontal = 0
+        elif grado_num == grado_den:
+            asint_horizontal = sp.LC(num, x) / sp.LC(den, x)
+        else:
+            asint_oblicua = sp.div(num, den)[0]  # Cociente de la división
+    except:
+        pass
+
     return asint_verticales, asint_horizontal, asint_oblicua
+
 
 def derivadas_funcion(f):
     f_prima = sp.simplify(sp.diff(f, x))
     f_segunda = sp.simplify(sp.diff(f_prima, x))
     return f_prima, f_segunda
 
+def analizar_signo(f,puntos_discontinuidad):
+    """
+    Analiza el signo de una función en intervalos definidos por puntos críticos
+    """
 
-
-
-def analizar_monotonia(f_prima, puntos_indefinidos):
-    """Analiza intervalos de crecimiento y decrecimiento"""
-    # Encontrar puntos críticos (donde f'(x) = 0 o no existe)
-    puntos_criticos = set()
-
-    # Puntos donde f'(x) = 0
+    puntos_cero = []
     try:
-        crit_numerador = sp.numer(sp.together(f_prima))
-        raices_criticas = sp.solve(sp.Eq(crit_numerador, 0), x)
-        puntos_criticos.update(raices_criticas)
+        numerador = sp.numer(sp.together(f))
+        puntos_cero = sp.solve (sp.Eq(numerador, 0),x)
     except:
         pass
 
-    # Puntos donde f'(x) no existe (asintotas verticales)
-    puntos_criticos.update(puntos_indefinidos)
+    # Combinar todos los puntos importantes
+    puntos_importantes = set(puntos_cero + puntos_discontinuidad)
+    puntos_reales = sorted([p for p in puntos_importantes if p.is_real])
 
-    # Convertir a números reales y ordenar
-    puntos_reales = sorted([float(p) for p in puntos_criticos if p.is_real])
+    # Crear intervalos
+    if not puntos_reales:
+        return [(-sp.oo, sp.oo)], []
 
-    # Crear intervalos de prueba
-    intervalos = []
-    if puntos_reales:
-        intervalos.append((-np.inf, puntos_reales[0]))
-        for i in range(len(puntos_reales) - 1):
-            intervalos.append((puntos_reales[i], puntos_reales[i + 1]))
-        intervalos.append((puntos_reales[-1], np.inf))
-    else:
-        intervalos = [(-np.inf, np.inf)]
+    intervalos = [(-sp.oo, puntos_reales[0])]
+    for i in range(len(puntos_reales) - 1):
+        intervalos.append((puntos_reales[i], puntos_reales[i + 1]))
+    intervalos.append((puntos_reales[-1], sp.oo))
 
-    # Evaluar signo de f' en cada intervalo
+    # Analizar signo en cada intervalo
     creciente = []
     decreciente = []
 
@@ -112,7 +133,7 @@ def analizar_monotonia(f_prima, puntos_indefinidos):
             punto_prueba = (a + b) / 2
 
         try:
-            valor = f_prima.subs(x, punto_prueba)
+            valor = f.subs(x, punto_prueba)
             if valor > 0:
                 creciente.append((a, b))
             elif valor < 0:
@@ -122,17 +143,29 @@ def analizar_monotonia(f_prima, puntos_indefinidos):
 
     return creciente, decreciente
 
+def analizar_monotonia(f_prima, puntos_indefinidos):
+    """Analiza intervalos de crecimiento y decrecimiento"""
+    return analizar_signo(f_prima, puntos_indefinidos)
 
 def analizar_concavidad(f_segunda, puntos_indefinidos):
     """Analiza concavidad de la función"""
-    # Similar a analizar_monotonia pero con f''
-    return analizar_monotonia(f_segunda, puntos_indefinidos)
+    return analizar_signo(f_segunda, puntos_indefinidos)
 
+
+# Definir variable y función
+x = sp.symbols('x')
+f_expr = (x ** 3 - 3 * x ** 2 + 3 * x - 1) / (x ** 2 - 2 * x)
 
 # Realizar análisis completo
-resultados = analizar_funcion(f_expr)
-creciente, decreciente = analizar_monotonia(resultados['f_prima'], resultados['puntos_indefinidos'])
-concava_arriba, concava_abajo = analizar_concavidad(resultados['f_segunda'], resultados['puntos_indefinidos'])
+resultados = analisis_completo(f_expr)
+
+print("=" * 60)
+print("ANÁLISIS DE LA FUNCIÓN")
+print("=" * 60)
+print(f"f(x) = {sp.pretty(f_expr)}")
+print()
+
+
 
 # Mostrar resultados
 print("(a) DOMINIO:")
@@ -156,13 +189,13 @@ print(f"   f''(x) = {sp.pretty(resultados['f_segunda'])}")
 print()
 
 print("(f) MONOTONÍA:")
-print(f"   Creciente en: {creciente}")
-print(f"   Decreciente en: {decreciente}")
+print(f"   Creciente en: {resultados['creciente']}")
+print(f"   Decreciente en: {resultados['decreciente']}")
 print()
 
 print("(g) CONCAVIDAD:")
-print(f"   Cóncava hacia arriba en: {concava_arriba}")
-print(f"   Cóncava hacia abajo en: {concava_abajo}")
+print(f"   Cóncava hacia arriba en: {resultados['concava_arriba']}")
+print(f"   Cóncava hacia abajo en: {resultados['concava_abajo']}")
 print()
 
 # (e) GRÁFICAS
