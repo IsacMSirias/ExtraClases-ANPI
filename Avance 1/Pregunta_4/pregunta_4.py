@@ -2,6 +2,9 @@ from math import *
 import numpy as np
 import time 
 import sympy as sp
+import pandas as pd
+
+np.seterr(over='ignore')
 
 # Pregunta 4, inciso a
 
@@ -38,15 +41,10 @@ def biseccion(fun, a, b, tol, max_iter):
 
     return xk, k+1, erk 
 
-inicio = time.perf_counter()
-raiz, iteraciones, error = biseccion(fun, -0.3, -0.1, 1e-8, 10000)  
-final = time.perf_counter()
-print ("Metodo de Biseccion")
-print(f"sol aproximada: {raiz:.15f}")
-print(f"Iteraciones: {iteraciones}")
-print(f"|f(xk)| = {error:.15f}")
-print(f"Tiempo total: {final - inicio:.15f} segundos")
-print("---------------------------------------------------")
+biseccion_inicio = time.perf_counter()
+biseccion_raiz, biseccion_iteraciones, biseccion_error = biseccion(fun, -0.3, -0.1, 1e-8, 10000)  
+biseccion_final = time.perf_counter()
+
 
 
 # Pregunta 4, inciso b Metodo de Newton-Raphson
@@ -63,7 +61,6 @@ def newton_raphson(fun, x0, tol, max_iter):
 
     for k in range(max_iter):
         if dfn(xk) == 0:  # Evitar división por cero
-            print("Derivada nula.")
             return None, k, None
         else:
             xk = xk - fun(xk) / dfn(xk) # Actualiza xk usando la fórmula de Newton-Raphson
@@ -74,15 +71,10 @@ def newton_raphson(fun, x0, tol, max_iter):
     return xk, k + 1, erk # Retorna la aproximación, número de iteraciones y el error
 
 
-inicio = time.perf_counter()
-raiz, iteraciones, error = newton_raphson(fun, -0.1, 1e-8, 10000)
-final = time.perf_counter()
-print ("Metodo de Newton-Raphson")
-print(f"sol aproximada: {raiz:.15f}")
-print(f"Iteraciones: {iteraciones}")
-print(f"|f(xk)| = {error:.15f}")
-print(f"Tiempo total: {final - inicio:.15f} segundos")
-print("---------------------------------------------------")
+nr_inicio = time.perf_counter()
+nr_raiz, nr_iteraciones, nr_error = newton_raphson(fun, -0.1, 1e-8, 10000)
+nr_final = time.perf_counter()
+
 
 #Pregunta 4, inciso c Metodo de Steffensen
 
@@ -98,7 +90,6 @@ def stiffensen(fun, x0, tol, max_iter):
     xk = x0
     for k in range(max_iter):
         if abs(fun(xk)-fun(xk-1)) < 1e-15:  # evitar división por cero
-            print("Diferencia en f(x) nula.")
             return None, k, None
         else:
             xk = xk-(fun(xk)**2)/(fun(xk+fun(xk))-fun(xk)) # formula de Steffensen
@@ -108,38 +99,73 @@ def stiffensen(fun, x0, tol, max_iter):
                 break
     return xk, k + 1, erk 
 
-inicio = time.perf_counter()
-raiz, iteraciones, error = stiffensen(fun, -1, 1e-8, 10000)
-final = time.perf_counter()
-print ("Metodo de Steffensen")
-print(f"sol aproximada: {raiz:.15f}")
-print(f"Iteraciones: {iteraciones}")
-print(f"|f(xk)| = {error:.15f}")
-print(f"Tiempo total: {final - inicio:.15f} segundos")
-print("---------------------------------------------------")
+st_inicio = time.perf_counter()
+st_raiz, st_iteraciones, st_error = stiffensen(fun, -0.1, 1e-8, 10000) 
+st_final = time.perf_counter()
 
+
+# Pregunta 4, inciso d Metodo de la Secante
+# retorna [xk, k, erk]
 def secante(fun, x0, x1, tol, max_iter):
 
     for k in range(max_iter):
         if abs(fun(x1) - fun(x0)) < 1e-15:  # Evitar división por cero
-            print("Diferencia en f(x) nula.")
             return None, k, None
         else:
             xk = x1-fun(x1)*(x1-x0)/(fun(x1)-fun(x0)) # Actualiza xk usando la fórmula de la secante
-            x0,x1 = x1,xk  # Actualiza los puntos para la siguiente iteración
+            np.seterr(over='ignore')
+            x0,x1 = x1,xk 
             erk = abs(fun(xk)) # Calcula el error absoluto
             if erk < tol:  # Criterio de parada
                 k = k + 1
                 break
-    return xk, k + 1, erk # Retorna la aproximación, número de iteraciones y el error
+    return xk, k + 1, erk 
 
 
-inicio = time.perf_counter()
-raiz, iteraciones, error = secante(fun, -0.3, -0.1, 1e-8, 10000)
-final = time.perf_counter()
-print ("Metodo de la Secante")
-print(f"sol aproximada: {raiz:.15f}")
-print(f"Iteraciones: {iteraciones}")
-print(f"|f(xk)| = {error:.15f}")
-print(f"Tiempo total: {final - inicio:.15f} segundos")
-print("---------------------------------------------------")
+sec_inicio = time.perf_counter()
+sec_raiz, sec_iteraciones, sec_error = secante(fun, -0.3, -0.1, 1e-8, 10000)
+sec_final = time.perf_counter()
+
+
+# Pregunta 4, inciso d Metodo de la falsa posicion
+# retorna [xk, k, erk]
+
+def falsa_posicion(fun, a, b, tol, max_iter):
+    if fun(a) * fun(b) > 0:
+        return None, 0, None
+    for k in range(max_iter):
+        xk = a - (fun(a) * (a - b)) / (fun(a) - fun(b)) # calcula la formula de la secante
+
+        if bolzano(fun, a, xk):  #  valida que se cumpla bolzano
+            b = xk  
+        else:
+            a = xk  
+
+        erk = abs(fun(xk))  # erk
+        if erk < tol:  # Criterio de parada
+            return xk, k + 1, erk
+
+    return xk, k + 1, erk
+
+#prueba del metodo
+fp_inicio = time.perf_counter()
+fp_raiz, fp_iteraciones, fp_error = falsa_posicion(fun, -0.3, -0.1, 1e-8, 10000)
+fp_final = time.perf_counter()
+
+
+# Tabla de resultados
+
+datos = {
+    "Metodo": ["Biseccion", "Newton-Raphson", "Steffensen", "Secante", "Falsa Posicion"],
+    "R(Xk)": [biseccion_raiz, nr_raiz, st_raiz, sec_raiz, fp_raiz],
+    "k": [biseccion_iteraciones, nr_iteraciones, st_iteraciones, sec_iteraciones, fp_iteraciones],
+    "|f(Xk)|": [biseccion_error, nr_error, st_error, sec_error, fp_error],
+    "Tiempo (s)": [biseccion_final - biseccion_inicio, nr_final - nr_inicio, st_final - st_inicio, sec_final - sec_inicio, fp_final - fp_inicio]
+}
+
+df = pd.DataFrame(datos)
+df["R(Xk)"] = df["R(Xk)"].map(lambda x: f"{x:.15f}")
+pd.set_option("display.max_colwidth", None)
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", 1000)
+print(df)
