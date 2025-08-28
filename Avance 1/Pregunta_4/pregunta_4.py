@@ -152,42 +152,42 @@ fp_inicio = time.perf_counter()
 fp_raiz, fp_iteraciones, fp_error = falsa_posicion(fun, -0.3, -0.1, 1e-8, 10000)
 fp_final = time.perf_counter()
 
-
+#Inciso f) de Pregunta 4: Newton-Hermite-Ostrowski
 def nho (fun, x0, tol, max_iter):
     xk = x0
     x = sp.symbols('x')  # Variable simbólica
     f_sym = x * sp.exp(-x) - 5 - (sp.cos(x) / x)  # Función simbólica para derivar
 
-    # Derivada simbólica y luego convertirla en función numérica
+    # Derivada simbólica
     dfs = sp.diff(f_sym, x)
     dfn = sp.lambdify(x, dfs, 'numpy')
 
     for k in range(max_iter):
         fpx = dfn(xk)
 
-        if dfn(xk) == 0:  # Evitar división por cero
+        # Evitar división por cero con tolerancia
+        if abs(fpx) < 1e-15:
             return None, k, None
-        else:
-            zn = xk - fun(xk) / fpx # Actualiza xk usando la fórmula de Newton-Raphson
 
-            fz = fun(zn)
-            fpz = dfn (zn)
+        #Newton-Raphson
+        zn = xk - fun(xk) / fpx
+        fz = fun(zn)
+        fpz = dfn (zn)
 
-            # Evitar división por cero en H
-            if abs(3 * fpz - fpx) < 1e-15:
-                return None, k, None
+        # Evitar división por cero en H
+        if abs(3 * fpz - fpx) < 1e-15:
+            return None, k, None
 
-            H = (fpx - fpz) / (3 * fpz - fpx)
+        H = (fpx - fpz) / (3 * fpz - fpx)
 
-            # Fórmula NHO
-            xnew = zn - H * (fz / fpx)
+        # Fórmula NHO
+        xnew = zn - H * (fz / fpx)
+        erk = abs(fun(xnew))
 
-            erk = abs(fun(xnew))
-
-            if erk < tol:  # Criterio de parada
-                return xnew, k + 1, erk
-
-            xk = xnew
+        # Criterio de parada
+        if erk < tol:
+            return xnew, k + 1, erk
+        xk = xnew
     return xk, max_iter, erk
 
 nho_inicio = time.perf_counter()
