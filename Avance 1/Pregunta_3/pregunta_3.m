@@ -27,13 +27,22 @@ function [xk,k,erk]=biseccion(f,a,b,tol,iterMax)
     error ('La función no cambia de signo en [a,b]');
   endif
 
+  % Vectores para informacion de graficas
+  err_vec = [];
+  xk_vec = [];
+
   for k=1:iterMax
-    xk= (a + b) / 2
+    xk= (a + b) / 2;
+
+    % Guardar informacion para graficas
+    err_vec(end + 1) = abs(fn(xk));
+    xk_vec(end + 1) = xk;
+
 
     if fn(a)*fn(xk)<0
-      b = xk
+      b = xk;
     else
-      a = xk
+      a = xk;
     endif
 
     erk=abs(fn(xk));
@@ -42,4 +51,24 @@ function [xk,k,erk]=biseccion(f,a,b,tol,iterMax)
       break;
     endif
   endfor
+
+  % Gráficas
+  k;
+  err_vec;
+  xk_vec;
+
+  figure;
+  plot(1:k, abs(err_vec), 'b-o', 'LineWidth', 1.5, 'MarkerSize', 5);
+  title('Iteraciones vs el error en la función');
+  xlabel('Iteraciones (k)');
+  ylabel('Error (err_vec)');
+  grid on;
+
+  figure;
+  plot(1:k, xk_vec, 'b-o', 'LineWidth', 1.5, 'MarkerSize', 5);
+  title('Número de iteraciones vs la aproximación');
+  xlabel('Iteraciones (k)');
+  ylabel('Aproximacion (xk_vec)');
+  grid on;
+
 end
