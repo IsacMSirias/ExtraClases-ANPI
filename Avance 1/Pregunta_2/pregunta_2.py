@@ -377,5 +377,3 @@ ax3.legend()
 
 plt.tight_layout()
 plt.show()
-
-print("¡Análisis completado!")

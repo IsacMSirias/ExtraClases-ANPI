@@ -1,17 +1,31 @@
 import numpy as np
-from scipy.linalg import solve 
-
-# Entradas:
-# m: int, m>=5 (numero mayor o igual a 5)
-# a: vec(m,1)
-# b: vec(m-1,1)
-# c: vec(m-1,1)
-# d: vec(m-1,2)
-# e: vec(m-2,1)
-
-# Salida: una matriz pentadiagonal de dimensiones (m,m)
+from scipy.linalg import solve
 
 def pentadiagonal(m, a, b, c, d, e):
+    """
+    Construye una matriz pentadiagonal de dimensiones m×m a partir de vectores que representan sus diagonales.
+
+    Una matriz pentadiagonal tiene cinco diagonales distintas de cero: la principal, dos subdiagonales
+    y dos superdiagonales. Esta función organiza los vectores de entrada en estas diagonales.
+
+    Parámetros:
+        m : int
+            Dimensión de la matriz (m >= 5)
+        a : array_like, shape (m,1)
+            Vector para la diagonal principal
+        b : array_like, shape (m-1,1)
+            Vector para la primera superdiagonal (justo arriba de la principal)
+        c : array_like, shape (m-1,1)
+            Vector para la primera subdiagonal (justo debajo de la principal)
+        d : array_like, shape (m-2,1)
+            Vector para la segunda superdiagonal
+        e : array_like, shape (m-2,1)
+            Vector para la segunda subdiagonal
+
+    Retorna:
+        numpy.ndarray: Matriz pentadiagonal de dimensiones m×m con las diagonales especificadas
+        None: Si m < 5 (no cumple con el requisito mínimo)
+    """
     
     if m < 5:
         print("El valor de m debe ser mayor o igual a 5")
@@ -23,41 +37,28 @@ def pentadiagonal(m, a, b, c, d, e):
         A[np.arange(1, m), np.arange(m-1)] = c # Igual que el anterir
         A[np.arange(m-2), np.arange(2, m)] = d  # vec (m − 2) × 1.
         A[np.arange(2, m), np.arange(m-2)] = e # igual que el anterior
-        
-        # Lo anterior es basicamente la creacion de diagonales, esta juega con las pos (x,y)
-        # con el fin de poder estar arriba o debajo de la diagonal principal.
+
     
         return A
 
-#por si se gusta probar... Se puede hacer le la siguuiente manera:
-# Pongo numeros random la matriz
+# Configuración del problema específico
 
-# m= 15 
+m = 2500  # Dimensión de la matriz
 
-# a = np.random.randint(1, 10, size=m)      
-# b = np.random.randint(1, 10, size=m-1)     
-# c = np.random.randint(1, 10, size=m-1)     
-# d = np.random.randint(1, 10, size=m-2)     
-# e = np.random.randint(1, 10, size=m-2) 
-# print(pentadiagonal(m, a, b, c, d, e))
-
-
-# EN EL CASO ESPECIFICO DE LA PREGUNTA:
-
-m = 2500
-
-# creo que esto no hace falta explicarse tanto, pero por si acaso y por temas de la claridad en la evaluacion...
-# Se sabe que tenemos arrays de distintas dimensiones y con distintas formas y todas se pueden hacer facuiilmente con un fors 
+# Construcción de los vectores para las diagonales según las fórmulas dadas
 a = np.array([2*(i+1) for i in range(m)], dtype=float)  # 2(i+1),para i=0,1,...,m−1
 b = np.array([(i+1)/3 for i in range(m-1)], dtype=float) # i+1/3​,i=0,1,...,m−2
 c = np.array([i/3 for i in range(m-1)], dtype=float) # i/3​,i=0,1,...,m−2
 d = np.array([(i+2)/4 for i in range(m-2)], dtype=float) # (i+2)/4​,i=0,1,...,m−3
 e = np.array([i/4 for i in range(m-2)], dtype=float) # i/4​,i=0,1,...,m−3
+
+# Construcción del vector del lado derecho del sistema lineal
 h = np.array([2*i for i in range(m)], dtype=float) # 2i,i=0,1,...,m−1
 
 #  Contruccion de la matriz y su sol
-A = pentadiagonal(m, a, b, c, d, e)
-x = solve(A, h)
-# error
+A = pentadiagonal(m, a, b, c, d, e)  # Crear matriz pentadiagonal
+x = solve(A, h)  # Resolver el sistema lineal A*x = h
+
+# Cálculo del error de la solución
 error = np.linalg.norm(A @ x - h, 2)
 print("Error:", error)
