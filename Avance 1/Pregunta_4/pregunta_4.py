@@ -8,23 +8,60 @@ np.seterr(over='ignore')
 
 # Pregunta 4, inciso a
 
-# Ecuación a resolver f(x) = x*e**−x − 5 − (cos(x)/x)
-# Yo se que este ejericio lo hicimos en clase, pero queria ver si podia hacerlo de una manera en la cual pudiera usar funciones auxiliares para tener un 
-# codigo mas limpio y entendible (al menos para mi )
 
 def fun(x):
+    """
+    Evalúa la función f(x) = x*e^(-x) - 5 - (cos(x)/x) en un punto dado.
+
+    Parámetros:
+        x : float
+            Punto en el que evaluar la función
+
+    Retorna:
+            float: Valor de la función en x, o infinito si x = 0
+    """
+
     if x == 0:
         return float('inf')  # si hay un valor muy grande, no revienta
     return x * np.exp(-x) - 5 - (np.cos(x) / x)
 
-# de manera teorica se vio en clase el teorema de Bolzano, que dice que si f(a) y f(b) tienen signos distintos
-# entonces existe al menos una raiz en (a,b). Por lo tanto, se puede hacer un barrido en un intervalo grande
-# para encontrar un intervalo donde se cumpla esto y luego aplicar el metodo de biseccion:
 
 def bolzano(f, a, b):
+    """
+    Verifica si se cumple el teorema de Bolzano para una función en un intervalo.
+
+    Parámetros:
+        f : función
+            Función a evaluar
+        a : float
+            Extremo izquierdo del intervalo
+        b : float
+            Extremo derecho del intervalo
+
+    Retorna:
+        bool: True si f(a) y f(b) tienen signos opuestos, False en caso contrario
+    """
     return f(a) * f(b) < 0
 
 def biseccion(fun, a, b, tol, max_iter):
+    """
+    Encuentra una raíz de la función utilizando el metodo de bisección.
+
+    Parámetros:
+        fun : función
+            Función cuya raíz se busca
+        a : float
+            Extremo izquierdo del intervalo inicial
+        b : float
+            Extremo derecho del intervalo inicial
+        tol : float
+            Tolerancia para el criterio de parada
+        max_iter : int
+            Número máximo de iteraciones permitidas
+
+    Retorna:
+        tuple: (Aproximación de la raíz, número de iteraciones, error absoluto)
+    """
     
     for k in range(max_iter):
         xk = (a + b) / 2 # calcula el punto medio
@@ -50,6 +87,22 @@ biseccion_final = time.perf_counter()
 # Pregunta 4, inciso b Metodo de Newton-Raphson
 # retorna [xk, k, erk]
 def newton_raphson(fun, x0, tol, max_iter):
+    """
+    Encuentra una raíz de la función utilizando el metodo de Newton-Raphson.
+
+    Parámetros:
+        fun : función
+            Función cuya raíz se busca
+        x0 : float
+            Valor inicial para comenzar las iteraciones
+        tol : float
+            Tolerancia para el criterio de parada
+        max_iter : int
+            Número máximo de iteraciones permitidas
+
+    Retorna:
+        tuple: (Aproximación de la raíz, número de iteraciones, error absoluto)
+    """
     
     xk = x0
     x = sp.symbols('x')  # Variable simbólica
@@ -78,15 +131,24 @@ nr_final = time.perf_counter()
 
 #Pregunta 4, inciso c Metodo de Steffensen
 
-def steffensen(fun, x0, tol, max_iter):
-    return None, None, None
-
-
-# Pregunta 4, inciso d Metodo de la Secante
-#En la buena y sana teoria, este metodo es pareciod Newton-Raphson, lo unico distinto serian como las valicaciones, que no hay derivada, y el calculo
-# retorna [xk, k, erk]
 
 def stiffensen(fun, x0, tol, max_iter):
+    """
+    Encuentra una raíz de la función utilizando el metodo de Steffensen.
+
+    Parámetros:
+        fun : función
+            Función cuya raíz se busca
+        x0 : float
+            Valor inicial para comenzar las iteraciones
+        tol : float
+            Tolerancia para el criterio de parada
+        max_iter : int
+            Número máximo de iteraciones permitidas
+
+    Retorna:
+        tuple: (Aproximación de la raíz, número de iteraciones, error absoluto)
+    """
     xk = x0
     for k in range(max_iter):
         if abs(fun(xk)-fun(xk-1)) < 1e-15:  # evitar división por cero
@@ -100,13 +162,31 @@ def stiffensen(fun, x0, tol, max_iter):
     return xk, k + 1, erk 
 
 st_inicio = time.perf_counter()
-st_raiz, st_iteraciones, st_error = stiffensen(fun, -0.1, 1e-8, 10000) 
+st_raiz, st_iteraciones, st_error = stiffensen(fun, -0.1, 1e-8, 10000)
 st_final = time.perf_counter()
 
 
 # Pregunta 4, inciso d Metodo de la Secante
 # retorna [xk, k, erk]
 def secante(fun, x0, x1, tol, max_iter):
+    """
+    Encuentra una raíz de la función utilizando el metodo de la secante.
+
+    Parámetros:
+        fun : función
+            Función cuya raíz se busca
+        x0 : float
+            Primer valor inicial
+        x1 : float
+            Segundo valor inicial
+        tol : float
+            Tolerancia para el criterio de parada
+        max_iter : int
+            Número máximo de iteraciones permitidas
+
+    Retorna:
+        tuple: (Aproximación de la raíz, número de iteraciones, error absoluto)
+    """
 
     for k in range(max_iter):
         if abs(fun(x1) - fun(x0)) < 1e-15:  # Evitar división por cero
@@ -131,6 +211,24 @@ sec_final = time.perf_counter()
 # retorna [xk, k, erk]
 
 def falsa_posicion(fun, a, b, tol, max_iter):
+    """
+    Encuentra una raíz de la función utilizando el metodo de la falsa posición.
+
+    Parámetros:
+        fun : función
+            Función cuya raíz se busca
+        a : float
+            Extremo izquierdo del intervalo inicial
+        b : float
+            Extremo derecho del intervalo inicial
+        tol : float
+            Tolerancia para el criterio de parada
+        max_iter : int
+            Número máximo de iteraciones permitidas
+
+    Retorna:
+        tuple: (Aproximación de la raíz, número de iteraciones, error absoluto)
+    """
     if fun(a) * fun(b) > 0:
         return None, 0, None
     for k in range(max_iter):
@@ -154,6 +252,22 @@ fp_final = time.perf_counter()
 
 #Inciso f) de Pregunta 4: Newton-Hermite-Ostrowski
 def nho (fun, x0, tol, max_iter):
+    """
+    Encuentra una raíz de la función utilizando el metodo de Newton-Hermite-Ostrowski.
+
+    Parámetros:
+        fun : función
+            Función cuya raíz se busca
+        x0 : float
+            Valor inicial para comenzar las iteraciones
+        tol : float
+            Tolerancia para el criterio de parada
+        max_iter : int
+            Número máximo de iteraciones permitidas
+
+    Retorna:
+        tuple: (Aproximación de la raíz, número de iteraciones, error absoluto)
+    """
     xk = x0
     x = sp.symbols('x')  # Variable simbólica
     f_sym = x * sp.exp(-x) - 5 - (sp.cos(x) / x)  # Función simbólica para derivar
