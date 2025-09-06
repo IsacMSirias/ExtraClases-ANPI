@@ -64,15 +64,18 @@ def muller (f,x0, x1, x2, tol, iterMax):
 
     return x2, iterMax, abs(f2)
 
-# Parámetros del problema
-#x0 = 2.5
-#x1 = 2.75
-#x2 = 3.0
-#tol = 1e-10
-#iterMax = 1000
+def main():
+    #Parametros
+    x0 = 2.5
+    x1 = 2.75
+    x2 = 3.0
+    tol = 1e-10
+    iterMax = 1000
 
-# Aplicar el metodo de Müller
-raiz, iteraciones, error = muller(fun, 2.5, 2.75, 3.0, 1e-10, 1000)
+    return muller(fun, x0, x1, x2, tol, iterMax)
+
+# Ejecutar el metodo y obtener resultados
+raiz, iteraciones, error = main()
 
 # Mostrar resultados
 print("=== MÉTODO DE MÜLLER ===")
