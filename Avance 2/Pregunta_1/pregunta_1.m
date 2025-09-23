@@ -57,7 +57,7 @@ function c = unicidad_pf(f,a,b)
     fda = fdn(a);
     fdb = fdn(b);
 
-    if fda >= -1 && fda <= 1 && fdb >= -1 && fdb <= 1
+    if fda > -1 && fda < 1 && fdb > -1 && fdb <= 1
       unicidad = 1;
       fprintf("f(x) tiene un único punto fijo en el intervalo [a,b] \n")
     else
