@@ -1,6 +1,4 @@
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 
 # En base a los metodos de eliminacion Gaussiana se tiene lo siguiente:
 
@@ -85,5 +83,18 @@ def elimi_gauss(A, b):
 
     return x
 
-x = elimi_gauss(A2, b2)
+#x = elimi_gauss(A2, b2)
+#print(x)
+
+
+# Segun las instrucciones teengo que usar la matriz:
+
+
+A = np.array([[10, 1, 2, 3, 4, 5, 6, 7, 8, 9],[1, 20, 2, 3, 4, 5, 6, 7, 8, 9],[2, 1, 30, 3, 4, 5, 6, 7, 8, 9],[3, 2, 1, 40, 4, 5, 6, 7, 8, 9],
+              [4, 3, 2, 1, 50, 5, 6, 7, 8, 9],[5, 4, 3, 2, 1, 60, 6, 7, 8, 9],[6, 5, 4, 3, 2, 1, 70, 7, 8, 9],[7, 6, 5, 4, 3, 2, 1, 80, 8, 9],
+              [8, 7, 6, 5, 4, 3, 2, 1, 90, 9],[9, 8, 7, 6, 5, 4, 3, 2, 1, 100]], dtype=float)
+
+b = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], dtype=float)
+
+x = elimi_gauss(A, b)
 print(x)
