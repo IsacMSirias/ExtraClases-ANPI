@@ -1,6 +1,6 @@
 function d = det_fact_lu(A)
     # detfactlu - Calcula el determinante usando factorización LU
-    # d = detfactlu(A) donde d = producto de los elementos diagonales de U
+    # d = det_fact_lu(A) donde d = producto de los elementos diagonales de U
 
     [n, n] = size(A);
 
