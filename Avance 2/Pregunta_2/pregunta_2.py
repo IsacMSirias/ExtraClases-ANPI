@@ -2,22 +2,67 @@ import math
 import numpy as np
 import sympy as sp
 
+
 def fun(x):
+    """
+    Función objetivo para la cual se busca la raíz.
+
+    Parámetros:
+        x : float
+            Punto donde evaluar la función
+
+    Retorna:
+        float: Valor de (1 + x) * sin(x) - 1 en el punto x
+    """
     return (1 + x) * np.sin(x) - 1
 
-def disc (a, b, c):
-    return math.sqrt(b**2 - 4*a*c)
+
+def disc(a, b, c):
+    """
+    Calcula el discriminante de una ecuación cuadrática.
+
+    Parámetros:
+        a, b, c : float
+            Coeficientes de la ecuación cuadrática ax² + bx + c = 0
+
+    Retorna:
+        float: Raíz cuadrada del discriminante (b² - 4ac)
+    """
+    return math.sqrt(b ** 2 - 4 * a * c)
 
 
-def muller (f,x0, x1, x2, tol, iterMax):
+def muller(f, x0, x1, x2, tol, iterMax):
+    """
+    Método de Müller para encontrar raíces de funciones.
+
+    El método de Müller aproxima la función con un polinomio cuadrático
+    que pasa por tres puntos y encuentra su raíz más cercana.
+
+    Parámetros:
+        f : function
+            Función para la cual buscar la raíz
+        x0, x1, x2 : float
+            Tres aproximaciones iniciales para la raíz
+        tol : float
+            Tolerancia para el criterio de parada
+        iterMax : int
+            Número máximo de iteraciones permitidas
+
+    Retorna:
+        tuple: (raíz_aproximada, iteraciones_realizadas, error_final)
+    """
+
+    # Evaluar la función en los puntos iniciales
     f0 = f(x0)
     f1 = f(x1)
     f2 = f(x2)
 
+    # Iteraciones del método
     for k in range(iterMax):
         # Calcular las constantes a, b, c del polinomio cuadrático
         # usando las fórmulas del metodo de Müller
 
+        # Diferencias entre puntos
         h0 = x0 - x2
         h1 = x1 - x2
 
@@ -29,14 +74,16 @@ def muller (f,x0, x1, x2, tol, iterMax):
         # Resolver para a y b
         denom = h0 * h1 * (h0 - h1)
 
-        if abs(denom) < 1e-15:   # Evitar división por cero
-            return x2, k+1, abs(f2)
+        if abs(denom) < 1e-15:  # Evitar división por cero
+            return x2, k + 1, abs(f2)
 
+        # Calcular coeficientes del polinomio cuadrático
         a = (h1 * (f0 - f2) - h0 * (f1 - f2)) / denom
         b = (h0 ** 2 * (f1 - f2) - h1 ** 2 * (f0 - f2)) / denom
         c = f2
 
-        discriminante = disc(a,b,c)
+        # Calcular discriminante para encontrar raíz del polinomio
+        discriminante = disc(a, b, c)
 
         # Elegir el denominador más grande (para estabilidad numérica)
         if abs(b + discriminante) > abs(b - discriminante):
@@ -62,10 +109,18 @@ def muller (f,x0, x1, x2, tol, iterMax):
         x0, x1, x2 = x1, x2, x3
         f0, f1, f2 = f1, f2, f3
 
+    # Retornar mejor aproximación después de iteraciones máximas
     return x2, iterMax, abs(f2)
 
+
 def main():
-    #Parametros
+    """
+    Función principal para ejecutar el método de Müller con parámetros específicos.
+
+    Retorna:
+        tuple: Resultados del método de Müller (raíz, iteraciones, error)
+    """
+    # Parámetros del método
     x0 = 2.5
     x1 = 2.75
     x2 = 3.0
@@ -73,6 +128,7 @@ def main():
     iterMax = 1000
 
     return muller(fun, x0, x1, x2, tol, iterMax)
+
 
 # Ejecutar el metodo y obtener resultados
 raiz, iteraciones, error = main()
