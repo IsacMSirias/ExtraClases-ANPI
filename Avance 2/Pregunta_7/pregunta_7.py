@@ -45,21 +45,19 @@ def fact_qr(A):
     return Q, R
 
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    # Matriz de ejemplo (la misma que en tu código)
+def main():
     A = np.array([[1, 1],
                   [1, -1]], dtype=float)
 
-    Q, R = fact_qr(A)
+    return fact_qr(A)
 
-    print("Matriz A:")
-    print(A)
-    print("\nMatriz Q (ortogonal):")
-    print(Q)
-    print("\nMatriz R (triangular superior):")
-    print(R)
-    print("\nVerificación A = QR:")
-    print(Q @ R)  # Debería ser igual a A
-    print("\nVerificación Q^TQ = I:")
-    print(Q.T @ Q)  # Debería ser la matriz identidad
+Q, R = main()
+
+print("\nMatriz Q (ortogonal):")
+print(Q)
+print("\nMatriz R (triangular superior):")
+print(R)
+print("\nVerificación A = QR:")
+print(Q @ R)  # Debería ser igual a A
+print("\nVerificación Q^TQ = I:")
+print(Q.T @ Q)  # Debería ser la matriz identidad
