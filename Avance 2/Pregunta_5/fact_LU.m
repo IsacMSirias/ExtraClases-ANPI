@@ -1,11 +1,16 @@
 function [L, U] = fact_LU(A)
     # fact_LU - Calculo de las matrices L U de A = L U
+    # Parámetros:
+    #   A: matriz cuadrada
+    # Retorna:
+    #   L: matriz triangular inferior con 1's en la diagonal
+    #   U: matriz triangular superior
     [m, n] = size(A);
     if m ~= n
         error('La matriz debe ser cuadrada');
     end
 
-    # Verificación por rangos (reemplaza subm_check y diag_check)
+    # Verificación por rangos
     if ~tiene_LU_unica(A)
         error('La matriz no tiene factorización LU única');
     endif
@@ -29,10 +34,16 @@ endfunction
 function resultado = tiene_LU_unica(A)
     # tiene_LU_unica - Verifica si A tiene factorización LU única usando rangos
     # Teorema: A tiene LU única si todas sus submatrices principales
-    # tienen rango completo
+    # tienen rango completo (son invertibles)
+    #
+    # Parámetros:
+    #   A: matriz cuadrada
+    # Retorna:
+    #   resultado: 1 si tiene LU única, 0 en caso contrario
 
     n = size(A, 1);
     resultado = 1;
+    # Verificar todas las submatrices principales
     for k = 1:n
         # Submatriz principal de tamaño k×k
         Ak = A(1:k, 1:k);
