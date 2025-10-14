@@ -157,7 +157,7 @@ def construir_matriz_T():
     T = np.zeros((12, 12))
 
     # Diagonal principal
-    diagonal = [-1, -3, 3, -2, -1, 0, 0, -3, -2, 0, 0, 0]
+    diagonal = [-1, -3, 3, -2, -1, 0, 0, -3, -2, 0, 0, 1]
 
     # Sub/super diagonal
     subdiagonal = [4, 1, -2, 3, -3, 2, -2, -2, 1, 3,-1]
