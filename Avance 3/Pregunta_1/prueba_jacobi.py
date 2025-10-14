@@ -49,10 +49,9 @@ def jacobi_valores_propios (A, iterMax, tol):
         xNK= np.diag(Ak)
 
         erk = np.linalg.norm(xNK-xK, 2)
+        xK = xNK
         if erk < tol:
             return xNK, k+1, erk
-        xK = xNK
-
     return xK, k+1, erk
 
 A = np.zeros((15, 15))
