@@ -1,4 +1,4 @@
-function pregunta3()
+function pregunta_3()
   % pregunta3 - Compara distintos métodos numéricos para resolver una EDO de primer orden.
   %
   % Descripción:
