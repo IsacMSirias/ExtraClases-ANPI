@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sympy as sp
 
 def y_exacta(x):
     return np.sin(6 - x) / (np.sin(5) * np.sqrt(x))
@@ -66,10 +67,16 @@ def edo2(p, q, r, h, a, b, y0, yn):
     return x, y
 
 
+# Definición simbólica de las funciones
+x_sym = sp.symbols('x')
+p_sym = -1/x_sym
+q_sym = (1/(4*x_sym**2)) - 1
+r_sym = 0
 
-p = lambda x: -1.0/x
-q = lambda x: (1.0/(4.0*x*x)) - 1.0
-r = lambda x: 0.0
+# Conversión simbólica → numérica (funciones numpy)
+p = sp.lambdify(x_sym, p_sym, 'numpy')
+q = sp.lambdify(x_sym, q_sym, 'numpy')
+r = sp.lambdify(x_sym, r_sym, 'numpy')
 
 a, b = 1.0, 6.0
 y0, yn = 1.0, 0.0
