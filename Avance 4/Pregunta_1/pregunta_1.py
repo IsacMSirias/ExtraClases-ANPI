@@ -63,7 +63,7 @@ plt.plot(x_exact, y_exact, 'b', label='Función f(x)', linewidth=2)
 plt.plot(x_exact, y_polinomio, 'g', label='Polinomio', linewidth=2)
 
 # Graficar solución aproximada (stem plot rojo)
-plt.stem(xv, yv, linefmt='r-', markerfmt='ro', basefmt=' ', label='Puntos dados')
+plt.scatter(xv, yv, color= 'red', label='Puntos dados')
 
 plt.xlabel('x')
 plt.ylabel('y')
