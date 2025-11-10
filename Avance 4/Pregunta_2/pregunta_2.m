@@ -25,9 +25,9 @@ function ct = cota_interpolacion(f,a,b,xv,x_0)
 
 
   %Maximo de la función en el intervalo
-  newfdn=@(x) -1*fdn(x);
+  newfdn=@(x) -1*abs(fdn(x));
   fmaxbnd=@(newfdn,a,b) fminbnd(newfdn,a,b);
-  xmax=fmaxbnd(newfdn,a,b);
+  xmax=fmaxbnd(newfdn,a,b)
 
   alphamax=abs(fdn(xmax));
 
