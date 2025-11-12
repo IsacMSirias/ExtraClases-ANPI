@@ -117,94 +117,105 @@ Build H pseudoinversa
 
 
 """
-def build_H_pseudoinversa(m: int, l: int, force_m: bool = True, eps =0.0) -> np.ndarray:
-    
-    
 
-    # priemro se calcula el tamano extendidos y el num de bloques
-    
-    n = get_H_size(m,l, force_m)
-    p = n // l
-    
-    # x[k] = -(m - l*(k-1) - 1)/p
-    # y[k] =  (m - l*(k-1))/p
-    # z = 1/p  
+def _safe_x(x, k):
+    if 1 <= k <= len(x):
+        return x[k-1]
+    return 0.0
+def _safe_y(y, k):
+    if 1 <= k <= len(y):
+        return y[k-1]
+    return 0.0
 
-    x = np.array([-(m - l*(k-1) - 1)/p for k in range(1, p)], dtype=float)
-    y = np.array([(m - l*(k-1))/p for k in range(1, p+1)], dtype=float)
+def build_H_pseudoinversa(m: int, l: int, force_m: bool = True) -> np.ndarray:
+    """
+    H† por la fórmula (12) 
+
+    Devuelve: H† de tamaño (n x m), con n = get_H_size(m,l,force_m).
+    """
+    # n = m + l - 1 y, si force_m=True, se ajusta al múltiplo de l (n = l*p)
+    n = get_H_size(m, l, force_m)
+    if n % l != 0:
+        raise ValueError(" se requiere n múltiplo de l.")
+    p = n // l  # número de bloques (definición del paper)
+
+    # Secuencias del paper (x_k, y_k) y z=1/p  [k=1..p-1] y [k=1..p]
+    # (ver definición exacta en el paper)
+    # x_k = -(m - l(k-1) - 1)/p, k=1..p-1
+    # y_k =  (m - l(k-1))    /p, k=1..p
+    x = np.array([-(m - l*(k-1) - 1)/p for k in range(1, p    )], dtype=np.float64)
+    y = np.array([ (m - l*(k-1)    )/p for k in range(1, p + 1)], dtype=np.float64)
     z = 1.0 / p
-    
-    #se inicia la matriz vacia de tamano nxm
-    
-    H_dag =np.zeros ((n,m) , dtype=np.float64)
-    
-    # rellenamosla matriz
-       
-    for i in range(n):
-        for j in range(m):
-            qi, ri = divmod(i, l)  # bloque y posición dentro del bloque (fila)
-            qj, rj = divmod(j, l)  # bloque y posición dentro del bloque (columna)
-            
-            # Ahora bien,segun el caso teorico se tienen los siguientes casos:
-            
-            # CASO 1: i <= j, ambos están en posiciones de inicio de bloque (r=0)
-            # Primer término de cada bloque en la zona superior izquierda.
-            # Usa la secuencia y[qj]
-            if i <= j and rj == 0 and ri == 0:
-                H_dag[i, j] = y[qj] if qj < len(y) else 0           
 
-            # CASO 2: i <= j, fila en fin de bloque y columna en inicio (rj=0, ri=l-1)
-            # Transición entre bloques consecutivos (zona diagonal superior).
-            # Usa z + x[qj-1]
-   
-            elif i <= j and rj == 0 and ri == l - 1:
-                H_dag[i, j] = z + x[qj - 1] if qj - 1 < len(x) and qj - 1 >= 0 else z
+    # Matriz H†
+    Hdag = np.zeros((n, m), dtype=np.float64)
 
-            
-            # CASO 3: i <= j, rj != 0, dentro de un bloque superior.
-            # Ajusta la contribución interna dentro del mismo bloque.
-            # Usa signo alternado (-1)^(d+1) * x[qj-1]
-            
-            elif i <= j and rj != 0 and (ri - j == 0 or ri - j == l - 1):
-                d = 0 if (ri - j == 0) else 1
-                H_dag[i, j] = ((-1)**(d+1)) * x[qj - 1] if qj - 1 < len(x) and qj - 1 >= 0 else 0
+    # Recorremos i=1..n, j=1..m en notación 1-based (como en (12))
+    for i1 in range(1, n+1):
+        qi = (i1-1) // l       # qi en 0..p-1
+        ri = (i1-1) %  l + 1   # ri en 1..l
 
-            
-            # CASO 4: i >= l y i > j, ambos en posiciones de inicio de bloque (r=0)
-            # Región inferior izquierda (bloques posteriores).
-            # Usa z + x[p - qj - 1]
-            
-            elif i >= l and i > j and rj == 0 and ri == 0:
-                H_dag[i, j] = z + x[p - qj - 1] if (p - qj - 1) < len(x) and (p - qj - 1) >= 0 else z
+        for j1 in range(1, m+1):
+            qj = (j1-1) // l   # qj en 0..p-1
+            rj = (j1-1) %  l + 1  # rj en 1..l
 
-            
-            # CASO 5: i >= l y i > j, fila en fin de bloque (ri=l-1) y columna en inicio (rj=0)
-            # Zona diagonal inferior (transición entre bloques bajos).
-            # Usa y[p - qj - 1]
-            
-            elif i >= l and i > j and rj == 0 and ri == l - 1:
-                H_dag[i, j] = y[p - qj - 1] if (p - qj - 1) < len(y) and (p - qj - 1) >= 0 else 0
+            val = 0.0
 
-            # CASO 6: i >= l y i > j, dentro de bloque inferior (rj ≠ 0).
-            # Contribución alternada dentro de bloques posteriores.
-            # Usa (-1)^d * x[p - qj - 2]
-            elif i >= l and i > j and rj != 0 and (ri - j == 0 or ri - j == l - 1):
-                d = 0 if (ri - j == 0) else 1
-                H_dag[i, j] = ((-1)**d) * x[p - qj - 2] if (p - qj - 2) < len(x) and (p - qj - 2) >= 0 else 0
+            # d en {0,1} como en el paper: d=0 si (ri - rj == 0), d=1 en otro caso
+            # (aparece en los casos con signo alternado)
+            d = 0 if (ri - rj) == 0 else 1
 
-            # CASO 7: rj == 0 y ri está dentro del bloque (ni al inicio ni al fin)
-            # Zona intermedia vertical del bloque (contribución constante z)
-            elif rj == 0 and ri != 0 and ri != l - 1:
-                H_dag[i, j] = z
+            # Casos "superiores" (i <= j) pertenecen a bloques B_k
+            if i1 <= j1 and rj == 1 and ri == 1:
+                # y_{qj+1}
+                val = _safe_y(y, qj+1)
 
-            # CASO 8: todos los demás (no encajan en ningún patrón anterior)
-            # Valor nulo
-            else:
-                H_dag[i, j] = 0.0
+            elif i1 <= j1 and rj == 1 and ri == l:
+                # z + x_{qj}
+                val = z + _safe_x(x, qj)
 
-    return H_dag
+            elif i1 <= j1 and rj != 1 and (qj >= qi) and ((ri - rj == 0) or (ri - rj == l - 1)):
+                # (-1)^{d+1} * x_{qj}
+                val = ((-1.0)**(d+1)) * _safe_x(x, qj)
+
+            # Casos "inferiores" (i >= l y i > j) pertenecen a bloques C_k
+            elif i1 >= l and i1 > j1 and rj == 1 and ri == 1:
+                # z + x_{p - qj - 1}
+                val = z + _safe_x(x, p - qj - 1)
+
+            elif i1 >= l and i1 > j1 and rj == 1 and ri == l:
+                # y_{p - qj}
+                val = _safe_y(y, p - qj)
+
+            elif i1 >= l and i1 > j1 and rj != 1 and (qj <= qi) and ((ri - rj == 0) or (ri - rj == l - 1)):
+                # (-1)^d * x_{p - qj - 1}
+                val = ((-1.0)**d) * _safe_x(x, p - qj - 1)
+
+            # Capa intermedia vertical: rj == 1 y ri no es ni inicio ni fin
+            elif rj == 1 and (ri != 1) and (ri != l):
+                # z
+                val = z
+
+            # else: 0 (ya inicializado)
+            Hdag[i1-1, j1-1] = val
+        
+
+    return Hdag
 
 
 
+m, l = 8, 3
+H     = build_H(m, l, force_m=True)
+H_dag = build_H_pseudoinversa(m, l, force_m=True)
 
-print (build_H_pseudoinversa(50,5))
+print("H shape:", H.shape)        # (m, n)
+print("H^+ shape:", H_dag.shape)  # (n, m)
+
+# 1) HH^+H = H
+test1 = np.allclose(H @ H_dag @ H, H, atol=1e-10)
+print("HH^+H = H ?", test1)
+
+# 2) (H^+H)^T = (H^+H)
+A = H_dag @ H
+test2 = np.allclose(A.T, A, atol=1e-10)
+print("(H^+H)^T = (H^+H) ?", test2)
