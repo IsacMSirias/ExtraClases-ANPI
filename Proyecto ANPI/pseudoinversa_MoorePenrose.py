@@ -51,7 +51,6 @@ Ger H Size:
     
 """
 def get_H_size(m: int, l: int, force_m: bool = True) -> int:
-    
     if not isinstance(m, int) or not isinstance(l, int):
         raise TypeError("m y l deben ser enteros")
     if m <= 0 or l <= 0:
@@ -84,13 +83,10 @@ H : np.ndarray, shape (m, n), dtype float64
 """
 
 def build_H(m: int, l: int, force_m: bool = True) -> np.ndarray:
-    # H de tamaño (m x n) con bloques de 1/l desplazados
-    n = m + l - 1
-    if force_m and (n % l != 0):
-        n = ((n // l) + 1) * l
+    n = get_H_size(m, l, force_m)
     H = np.zeros((m, n), dtype=np.float64)
     for i in range(m):
-        H[i, i:i+l] = 1.0 / l
+        H[i, i:i + l] = 1.0 / l
     return H
 
 
@@ -98,118 +94,43 @@ def build_H(m: int, l: int, force_m: bool = True) -> np.ndarray:
 """
 Build H pseudoinversa
 
-    Construye la pseudoinversa de MoorePenrose (H†) para la
-    matriz de desenfoque lineal uniforme H
-    
-        Parámetros
-    ----------
-    m : int
-        Número de columnas de la imagen borrosa G.
-    l : int
-        Longitud del desenfoque (píxeles).
-    force_m : bool
-        Si True, ajusta n al múltiplo de l (requerido por la teoría).
 
-    Retorna
-    -------
-    H_dag : np.ndarray
-        Matriz H† de tamaño (n × m), tipo float64.
+    Construye H† usando la definición de Moore–Penrose:
+        H† = H^T (H H^T)^{-1}
+
+    eps permite una pequeña regularización (Tikhonov) si hiciera falta:
+        H† = H^T (H H^T + eps I)^{-1}    """
 
 
-"""
+def build_H_pseudoinversa(m: int, l: int, force_m: bool = True, eps: float = 0.0) -> np.ndarray:
 
-def _safe_x(x, k):
-    if 1 <= k <= len(x):
-        return x[k-1]
-    return 0.0
-def _safe_y(y, k):
-    if 1 <= k <= len(y):
-        return y[k-1]
-    return 0.0
+   # 1. Construir H (m x n)
+    H = build_H(m, l, force_m=force_m)
+    m_rows, n_cols = H.shape  # m_rows = m, n_cols = n
 
-def build_H_pseudoinversa(m: int, l: int, force_m: bool = True) -> np.ndarray:
-    """
-    H† por la fórmula (12) 
+    # 2. Formar A = H H^T  (m x m)
+    A = H @ H.T
 
-    Devuelve: H† de tamaño (n x m), con n = get_H_size(m,l,force_m).
-    """
-    # n = m + l - 1 y, si force_m=True, se ajusta al múltiplo de l (n = l*p)
-    n = get_H_size(m, l, force_m)
-    if n % l != 0:
-        raise ValueError(" se requiere n múltiplo de l.")
-    p = n // l  # número de bloques (definición del paper)
+    # 3. Regularización opcional: A + eps I
+    if eps > 0.0:
+        A = A + eps * np.eye(m_rows, dtype=A.dtype)
 
-    # Secuencias del paper (x_k, y_k) y z=1/p  [k=1..p-1] y [k=1..p]
-    # (ver definición exacta en el paper)
-    # x_k = -(m - l(k-1) - 1)/p, k=1..p-1
-    # y_k =  (m - l(k-1))    /p, k=1..p
-    x = np.array([-(m - l*(k-1) - 1)/p for k in range(1, p    )], dtype=np.float64)
-    y = np.array([ (m - l*(k-1)    )/p for k in range(1, p + 1)], dtype=np.float64)
-    z = 1.0 / p
+    # 4. Calcular A^{-1} resolviendo A X = I  (evitar inv explícita)
+    I = np.eye(m_rows, dtype=A.dtype)
+    A_inv = np.linalg.solve(A, I)   # A_inv = A^{-1}, shape (m x m)
 
-    # Matriz H†
-    Hdag = np.zeros((n, m), dtype=np.float64)
+    # 5. H^+ = H^T A^{-1}  → (n x m)
+    H_dag = H.T @ A_inv
 
-    # Recorremos i=1..n, j=1..m en notación 1-based (como en (12))
-    for i1 in range(1, n+1):
-        qi = (i1-1) // l       # qi en 0..p-1
-        ri = (i1-1) %  l + 1   # ri en 1..l
-
-        for j1 in range(1, m+1):
-            qj = (j1-1) // l   # qj en 0..p-1
-            rj = (j1-1) %  l + 1  # rj en 1..l
-
-            val = 0.0
-
-            # d en {0,1} como en el paper: d=0 si (ri - rj == 0), d=1 en otro caso
-            # (aparece en los casos con signo alternado)
-            d = 0 if (ri - rj) == 0 else 1
-
-            # Casos "superiores" (i <= j) pertenecen a bloques B_k
-            if i1 <= j1 and rj == 1 and ri == 1:
-                # y_{qj+1}
-                val = _safe_y(y, qj+1)
-
-            elif i1 <= j1 and rj == 1 and ri == l:
-                # z + x_{qj}
-                val = z + _safe_x(x, qj)
-
-            elif i1 <= j1 and rj != 1 and (qj >= qi) and ((ri - rj == 0) or (ri - rj == l - 1)):
-                # (-1)^{d+1} * x_{qj}
-                val = ((-1.0)**(d+1)) * _safe_x(x, qj)
-
-            # Casos "inferiores" (i >= l y i > j) pertenecen a bloques C_k
-            elif i1 >= l and i1 > j1 and rj == 1 and ri == 1:
-                # z + x_{p - qj - 1}
-                val = z + _safe_x(x, p - qj - 1)
-
-            elif i1 >= l and i1 > j1 and rj == 1 and ri == l:
-                # y_{p - qj}
-                val = _safe_y(y, p - qj)
-
-            elif i1 >= l and i1 > j1 and rj != 1 and (qj <= qi) and ((ri - rj == 0) or (ri - rj == l - 1)):
-                # (-1)^d * x_{p - qj - 1}
-                val = ((-1.0)**d) * _safe_x(x, p - qj - 1)
-
-            # Capa intermedia vertical: rj == 1 y ri no es ni inicio ni fin
-            elif rj == 1 and (ri != 1) and (ri != l):
-                # z
-                val = z
-
-            # else: 0 (ya inicializado)
-            Hdag[i1-1, j1-1] = val
-        
-
-    return Hdag
-
+    return H_dag
 
 
 m, l = 8, 3
 H     = build_H(m, l, force_m=True)
 H_dag = build_H_pseudoinversa(m, l, force_m=True)
 
-print("H shape:", H.shape)        # (m, n)
-print("H^+ shape:", H_dag.shape)  # (n, m)
+print("H shape:", H.shape)         # (8, 12)
+print("H^+ shape:", H_dag.shape)   # (12, 8) ← esto es lo correcto
 
 # 1) HH^+H = H
 test1 = np.allclose(H @ H_dag @ H, H, atol=1e-10)
