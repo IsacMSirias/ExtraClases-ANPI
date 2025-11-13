@@ -1,7 +1,14 @@
 
 import numpy as np
-from skimage import io, color, img_as_float
+from skimage import io, color
+from skimage.util import img_as_float
 from matplotlib import pyplot as plt
+
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent      # carpeta donde está este script
+IMG_DIR = BASE_DIR / "imagenes"                # subcarpeta
+path = IMG_DIR / "rdr.jpg"
 
 """
 Loader:
@@ -29,8 +36,6 @@ def load_image(path: str) -> np.ndarray:
     
     return G
 
-
-path = "C:\\Users\\isacm\\Desktop\\TEC\\IIS 2025\\ANPI\\ExtraClases\\ExtraClases-ANPI\\Proyecto ANPI\\imagenes\\rdr.jpg"
 
 """
 c
