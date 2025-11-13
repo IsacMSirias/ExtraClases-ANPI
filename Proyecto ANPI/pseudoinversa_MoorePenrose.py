@@ -106,7 +106,7 @@ Build H pseudoinversa
     eps permite una pequeña regularización (Tikhonov) si hiciera falta:
         H† = H^T (H H^T + eps I)^{-1}    """
 
-
+"""
 def build_H_pseudoinversa(m: int, l: int, force_m: bool = True, eps: float = 0.0) -> np.ndarray:
 
    # 1. Construir H (m x n)
@@ -144,4 +144,93 @@ print("HH^+H = H ?", test1)
 # 2) (H^+H)^T = (H^+H)
 A = H_dag @ H
 test2 = np.allclose(A.T, A, atol=1e-10)
-print("(H^+H)^T = (H^+H) ?", test2)
+print("(H^+H)^T = (H^+H) ?", test2)"""
+
+
+# Con las correcciones del profe, se calcula la matriz pseudoinversa con Newton Schulz 
+
+"""
+    Método de Newton–Schulz para aproximar la pseudoinversa de A.
+
+    A : matriz (m x n)
+    tol : tolerancia sobre ||A Yk A - A||_F
+    iterMax : máximo de iteraciones
+
+    Retorna
+    -------
+    Yk : aproximación de A⁺ (n x m)
+    k  : número de iteraciones realizadas
+    er : error final ||A Yk A - A||_F
+"""
+
+def newton_schulz_pseudoinversa(A: np.ndarray,tol: float = 1e-10, iterMax: int = 100):
+
+    m, n = A.shape
+
+    # Vector inicial Y0 = A^T / ||A||_F^2
+    Yk = (1.0 / np.linalg.norm(A, 'fro')**2) * A.T   # (n x m)
+
+    Im = np.eye(m)   # identidad del tamaño de A A^+ (m x m)
+
+    er = np.inf
+    for k in range(iterMax):
+        # Iteración: Y_{k+1} = Y_k (2I - A Y_k)
+        Yk = Yk @ (2 * Im - A @ Yk)
+
+        # Error de pseudoinversa: ||A Yk A - A||_F
+        er = np.linalg.norm(A @ Yk @ A - A, 'fro')
+
+        if er < tol:
+            break
+
+    return Yk, k + 1, er
+
+
+"""
+Construye una aproximación de H^+ mediante Newton–Schulz.
+
+m : número de columnas de la imagen borrosa G
+l : longitud del desenfoque
+force_m : usa get_H_size para que n sea múltiplo de l
+tol, iterMax : parámetros de Newton–Schulz
+
+Retorna
+-------
+H_dag_NS : aproximación de la pseudoinversa de Moore–Penrose de H,
+            de tamaño (n x m).
+"""
+
+def build_H_pseudoinversa_NS(m: int, l: int,force_m: bool = True,tol: float = 1e-10, iterMax: int = 100) -> np.ndarray:
+
+    # Construimos H 
+    H = build_H(m, l, force_m=force_m)   # H es (m x n)
+
+    H_dag_NS, it, er = newton_schulz_pseudoinversa(H, tol=tol, iterMax=iterMax)
+
+    #print(f"iteraciones = {it}, error = {er:.3e}")
+
+    return H_dag_NS
+
+
+
+"""
+
+Test de pseudoinversa con N-S
+m, l = 8, 3
+H = build_H(m, l, force_m=True)
+print("H shape:", H.shape)
+
+
+# 2) Pseudoinversa por NEWTON–SCHULZ
+H_dag_NS = build_H_pseudoinversa_NS(m, l, force_m=True,
+                                    tol=1e-10, iterMax=200)
+print("H^+ NS shape:", H_dag_NS.shape)
+
+test1_NS = np.allclose(H @ H_dag_NS @ H, H, atol=1e-6)
+A_NS = H_dag_NS @ H
+test2_NS = np.allclose(A_NS.T, A_NS, atol=1e-6)
+
+print("NS -> HH^+H = H ?", test1_NS)
+print("NS -> (H^+H)^T = (H^+H) ?", test2_NS)
+
+"""
