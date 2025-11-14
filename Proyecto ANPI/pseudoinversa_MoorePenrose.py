@@ -1,354 +1,182 @@
-
 import numpy as np
 from skimage import io, color
 from skimage.util import img_as_float
 from matplotlib import pyplot as plt
-
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent      # carpeta donde está este script
-IMG_DIR = BASE_DIR / "imagenes"                # subcarpeta
-path = IMG_DIR / "rdr.jpg"
 
-"""
-Loader:
+BASE_DIR = Path(__file__).resolve().parent
+IMG_DIR = BASE_DIR / "imagenes"
+PATH_IMG = IMG_DIR / "rdr.jpg"   
 
-Carga una imagen desde disco y la convierte en la matriz G
-    usada en el método MP.
 
-    - Si la imagen es RGB o RGBA, la convierte a escala de grises.
-    - Normaliza los valores en el rango [0, 1].
-    - Devuelve una matriz NumPy 2D de tipo float6
-
-"""
-
-def load_image(path: str) -> np.ndarray:
-    # Lee la imagen (preferiblemente jpg o png)
-    
-    img =  io.imread(path)
-    
-    # si se tiene 2 o 3 canales, convertir a escala de grises
+def load_image_gray(path: str) -> np.ndarray:
+    """Carga la imagen y la pasa a escala de grises [0,1]."""
+    img = io.imread(path)
     if img.ndim == 3:
         img = color.rgb2gray(img)
-        
-    # Convertir a float y normalizar en [0,1]
-    G = img_as_float(img).astype(np.float64)
-    
-    return G
+    return img_as_float(img).astype(np.float64)
 
 
-"""
-c
-G = load_image(path)
 
-print("Forma:", G.shape)
-print("Tipo de datos:", G.dtype)
-print("Rango de valores:", float(G.min()), "->", float(G.max()))
+def load_image_color(path: str) -> np.ndarray:
+    """Carga la imagen en color solo para mostrarla."""
+    img = io.imread(path)
+    return img
 
-plt.imshow(G, cmap="gray")
-plt.axis("off")
-plt.show()
-"""
 
-"""
-Ger H Size:
-    Calcula n = m+1 -1 : si force_m es True, el metodo ajusta n al multiplo 1 (segun la formula teorica)
-    
-"""
-def get_H_size(m: int, l: int, force_m: bool = True) -> int:
-    if not isinstance(m, int) or not isinstance(l, int):
-        raise TypeError("m y l deben ser enteros")
-    if m <= 0 or l <= 0:
-        raise ValueError("m y l deben ser positivos")
 
+
+def build_H(m: int, l: int) -> np.ndarray:
+    """
+    Construye H (m x n) para blur horizontal uniforme.
+    n = m + l - 1.
+    """
     n = m + l - 1
-    if force_m and (n % l != 0):
-        n = ((n // l) + 1) * l
-    return n
-
-"""
-Build H 
-Construye la matriz de desenfoque H (Toeplitz no simétrica) para blur horizontal uniforme.
-
-H es de tamaño (m x n), con n = m + l - 1 (o redondeado a múltiplo de l si force_multiple=True).
-Cada fila i de H tiene un bloque contiguo de longitud l con valor 1/l, desplazado una columna a la derecha por fila.
-
-Parámetros
-----------
-m : int
-    Número de columnas de la imagen borrosa G (ancho).
-l : int
-    Longitud del desenfoque (píxeles).
-force_multiple : bool
-    Si True, fuerza n a ser múltiplo de l (útil para Sección 3 del paper).
-
-Retorna
--------
-H : np.ndarray, shape (m, n), dtype float64
-"""
-
-def build_H(m: int, l: int, force_m: bool = True) -> np.ndarray:
-    n = get_H_size(m, l, force_m)
     H = np.zeros((m, n), dtype=np.float64)
     for i in range(m):
         H[i, i:i + l] = 1.0 / l
     return H
 
 
-
-"""
-Build H pseudoinversa
-
-
-    Construye H† usando la definición de Moore–Penrose:
-        H† = H^T (H H^T)^{-1}
-
-    eps permite una pequeña regularización (Tikhonov) si hiciera falta:
-        H† = H^T (H H^T + eps I)^{-1}    """
-
-"""
-def build_H_pseudoinversa(m: int, l: int, force_m: bool = True, eps: float = 0.0) -> np.ndarray:
-
-   # 1. Construir H (m x n)
-    H = build_H(m, l, force_m=force_m)
-    m_rows, n_cols = H.shape  # m_rows = m, n_cols = n
-
-    # 2. Formar A = H H^T  (m x m)
-    A = H @ H.T
-
-    # 3. Regularización opcional: A + eps I
-    if eps > 0.0:
-        A = A + eps * np.eye(m_rows, dtype=A.dtype)
-
-    # 4. Calcular A^{-1} resolviendo A X = I  (evitar inv explícita)
-    I = np.eye(m_rows, dtype=A.dtype)
-    A_inv = np.linalg.solve(A, I)   # A_inv = A^{-1}, shape (m x m)
-
-    # 5. H^+ = H^T A^{-1}  → (n x m)
-    H_dag = H.T @ A_inv
-
-    return H_dag
-
-
-m, l = 8, 3
-H     = build_H(m, l, force_m=True)
-H_dag = build_H_pseudoinversa(m, l, force_m=True)
-
-print("H shape:", H.shape)         # (8, 12)
-print("H^+ shape:", H_dag.shape)   # (12, 8) ← esto es lo correcto
-
-# 1) HH^+H = H
-test1 = np.allclose(H @ H_dag @ H, H, atol=1e-10)
-print("HH^+H = H ?", test1)
-
-# 2) (H^+H)^T = (H^+H)
-A = H_dag @ H
-test2 = np.allclose(A.T, A, atol=1e-10)
-print("(H^+H)^T = (H^+H) ?", test2)"""
-
-
-# Con las correcciones del profe, se calcula la matriz pseudoinversa con Newton Schulz 
-
-"""
-    Método de Newton–Schulz para aproximar la pseudoinversa de A.
-
-    A : matriz (m x n)
-    tol : tolerancia sobre ||A Yk A - A||_F
-    iterMax : máximo de iteraciones
-
-    Retorna
-    -------
-    Yk : aproximación de A⁺ (n x m)
-    k  : número de iteraciones realizadas
-    er : error final ||A Yk A - A||_F
-"""
-
-def newton_schulz_pseudoinversa(A: np.ndarray,tol: float = 1e-10, iterMax: int = 100):
-
+def newton_schulz_pseudoinversa(A: np.ndarray,
+                                tol: float = 1e-8,
+                                iterMax: int = 200):
+  
     m, n = A.shape
-
-    # Vector inicial Y0 = A^T / ||A||_F^2
-    Yk = (1.0 / np.linalg.norm(A, 'fro')**2) * A.T   # (n x m)
-
-    Im = np.eye(m)   # identidad del tamaño de A A^+ (m x m)
-
+    Yk = (1.0 / np.linalg.norm(A, 'fro')**2) * A.T  # (n x m)
+    Im = np.eye(m)
     er = np.inf
     for k in range(iterMax):
-        # Iteración: Y_{k+1} = Y_k (2I - A Y_k)
-        Yk = Yk @ (2 * Im - A @ Yk)
-
-        # Error de pseudoinversa: ||A Yk A - A||_F
-        er = np.linalg.norm(A @ Yk @ A - A, 'fro')
-
+        Yk = Yk @ (2 * Im - A @ Yk)   # (n x m)
+        er = np.linalg.norm(A @ Yk @ A - A, 'fro') / np.linalg.norm(A, 'fro')
         if er < tol:
             break
+    print(f"[NS] iteraciones={k+1}, error_rel={er:.3e}")
+    return Yk
 
-    return Yk, k + 1, er
 
+# ======================================================
+# 3. Blur sintético y restauración MP
+# ======================================================
+
+def blur_image(F_true: np.ndarray, l: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Aplica blur sintético: G = F_true * H.
+    Devuelve G, H y H^+.
+    """
+    r, m = F_true.shape
+    H = build_H(m, l)          # (m x n)
+    H_dag = newton_schulz_pseudoinversa(H)  # (n x m)
+    G = F_true @ H             # (r x n) imagen desenfocada
+    return G, H, H_dag
 
 """
-Construye una aproximación de H^+ mediante Newton–Schulz.
+Aplica blur sintético y restauración MP canal por canal (R,G,B).
 
-m : número de columnas de la imagen borrosa G
-l : longitud del desenfoque
-force_m : usa get_H_size para que n sea múltiplo de l
-tol, iterMax : parámetros de Newton–Schulz
+Parámetros
+----------
+F_color : np.ndarray
+    Imagen original en color, shape (r, m, 3), valores en [0,1].
+l : int
+    Longitud del blur horizontal.
 
 Retorna
 -------
-H_dag_NS : aproximación de la pseudoinversa de Moore–Penrose de H,
-            de tamaño (n x m).
-"""
-
-def build_H_pseudoinversa_NS(m: int, l: int,force_m: bool = True,tol: float = 1e-10, iterMax: int = 100) -> np.ndarray:
-
-    # Construimos H 
-    H = build_H(m, l, force_m=force_m)   # H es (m x n)
-
-    H_dag_NS, it, er = newton_schulz_pseudoinversa(H, tol=tol, iterMax=iterMax)
-
-    #print(f"iteraciones = {it}, error = {er:.3e}")
-
-    return H_dag_NS
-
-def pad_image_horizontal(G, n):
-    m_original = G.shape[1]
-    padding = n - m_original
-    if padding <= 0:
-        return G
-    # rellenamos a la derecha con el último valor (mejor que ceros)
-    pad_block = np.tile(G[:, -1:], (1, padding))
-    return np.hstack([G, pad_block])
-
-
-def restore_horizontal(G, H_dag):
-    # G padded shape: (rows × n)
-    # H_dag.T shape: (m × n)
-    return G @ H_dag.T
-
-def crop_image_horizontal(F_rec, m_original):
-    return F_rec[:, :m_original]
-
-def psnr(F, F_rec):
-    mse = np.mean((F - F_rec)**2)
-    if mse == 0:
-        return np.inf
-    return 10 * np.log10(1.0 / mse)
-
-def isnr(F, G, F_rec):
-    num = np.sum((F - G)**2)
-    den = np.sum((F - F_rec)**2)
-    return 10 * np.log10(num / den)
-
-
-def restore_image_horizontal(G, l):
+G_blur_color : np.ndarray
+    Imagen borrosa sintética en color (r, n, 3).
+F_rest_color : np.ndarray
+    Imagen restaurada en color (r, m, 3).
     """
-    Aplica la reconstrucción completa horizontal:
-    1. construye H y H†
-    2. hace padding a G
-    3. multiplica G_pad @ (H†)ᵀ
-    4. recorta
+def blur_and_restore_color(F_color: np.ndarray, l: int):
+
+    
+    # Asegurar tipo float64 en [0,1]
+    F_color = img_as_float(F_color).astype(np.float64)
+
+    r, m, c = F_color.shape
+    assert c == 3, "Se espera una imagen RGB (3 canales)."
+
+    # Construir H y su pseudoinversa UNA sola vez
+    H = build_H(m, l)                      # (m x n)
+    H_dag = newton_schulz_pseudoinversa(H)  # (n x m)
+
+    n = H.shape[1]  # ancho de la imagen borrosa
+
+    # Inicializar matrices para blur y restauración en color
+    G_blur_color = np.zeros((r, n, 3), dtype=np.float64)
+    F_rest_color = np.zeros((r, m, 3), dtype=np.float64)
+
+    # Procesar cada canal por separado
+    for ch in range(3):
+        F_ch = F_color[:, :, ch]      # (r x m)
+        G_ch = F_ch @ H               # (r x n)  blur
+        F_rest_ch = G_ch @ H_dag      # (r x m)  restaurada
+
+        G_blur_color[:, :, ch] = G_ch
+        F_rest_color[:, :, ch] = F_rest_ch
+
+    # Clampear a [0,1] por seguridad
+    F_rest_color = np.clip(F_rest_color, 0.0, 1.0)
+    G_blur_color = np.clip(G_blur_color, 0.0, 1.0)
+
+    return G_blur_color, F_rest_color
+
+def MP_restore_from_blur(G: np.ndarray, H_dag: np.ndarray) -> np.ndarray:
     """
-
-    rows, m = G.shape
-
-    # 1) Construir H y H†
-    H_dag = build_H_pseudoinversa_NS(m, l, force_m=True)
-    n = H_dag.shape[0]  # n columnas extendidas
-
-    # 2) Padding de G
-    G_pad = pad_image_horizontal(G, n)
-
-    # 3) Restauración
-    F_rec_pad = G_pad @ H_dag.T  # (rows × m)
-
-    # 4) Recorte
-    F_rec = crop_image_horizontal(F_rec_pad, m)
-
-    return F_rec
+    Restaura: F_rest = G * H^+.
+    G: (r x n)
+    H_dag: (n x m)
+    F_rest: (r x m)
+    """
+    return G @ H_dag
 
 
-def psnr(F, F_rec):
-    mse = np.mean((F - F_rec)**2)
-    if mse == 0:
-        return np.inf
-    return 10 * np.log10(1.0 / mse)
 
+def visualizar_blur_y_restaurada_color(G_blur_color: np.ndarray,
+                                       F_rest_color: np.ndarray,
+                                       titulo: str = "Blur vs Restaurada (color)"):
+    """
+    Muestra solo:
+      - Imagen borrosa sintética en color
+      - Imagen restaurada en color
+    """
+    plt.figure(figsize=(12, 5))
+    plt.suptitle(titulo, fontsize=16)
 
-def isnr(F, G, F_rec):
-    num = np.sum((F - G)**2)
-    den = np.sum((F - F_rec)**2)
-    return 10 * np.log10(num / den)
-
-
-def show_images(G, F_rec):
-    plt.figure(figsize=(10, 5))
-
+    # 1. Blur sintético
     plt.subplot(1, 2, 1)
-    plt.title("Imagen borrosa G")
-    plt.imshow(G, cmap='gray')
-    plt.axis('off')
+    plt.title("Imagen Borrosa (blur sintético)")
+    plt.imshow(G_blur_color)
+    plt.axis("off")
 
+    # 2. Restaurada
     plt.subplot(1, 2, 2)
-    plt.title("Reconstrucción F̃")
-    plt.imshow(F_rec, cmap='gray')
-    plt.axis('off')
+    plt.title("Imagen Restaurada (MP)")
+    plt.imshow(F_rest_color)
+    plt.axis("off")
 
+    plt.tight_layout()
     plt.show()
 
 
-def build_H_vertical(r, l, force_m=True):
-    n = get_H_size(r, l, force_m)
-    H = np.zeros((r, n), dtype=float)
-    for i in range(r):
-        H[i, i:i+l] = 1.0 / l
-    return H
-
-def build_Hc_pseudoinverse_NS(r, l):
-    return build_H_pseudoinversa_NS(r, l, force_m=True)
 
 
-def restore_image_2d(G, l_vertical, l_horizontal):
-    rows, cols = G.shape
+if __name__ == "__main__":
+    # Cargar original en color
+    F_color = load_image_color(str(PATH_IMG))   # (r, m, 3)
 
-    # ----- Pseudoinversa horizontal (H_r) -----
-    H_r_dag = build_H_pseudoinversa_NS(cols, l_horizontal)
-    n_cols = H_r_dag.shape[0]
-    G_pad = pad_image_horizontal(G, n_cols)
-    tmp = G_pad @ H_r_dag.T
-    tmp = tmp[:, :cols]  # recorte
+    # Parámetro de blur
+    l = 7  # puedes jugar con 3, 5, 7...
 
-    # ----- Pseudoinversa vertical (H_c) -----
-    H_c_dag = build_H_pseudoinversa_NS(rows, l_vertical)
-    n_rows = H_c_dag.shape[0]
-    pad_bottom = n_rows - rows
-    if pad_bottom > 0:
-        tmp = np.vstack([tmp, np.tile(tmp[-1:], (pad_bottom, 1))])
+    # Blur sintético y restauración EN COLOR
+    G_blur_color, F_rest_color = blur_and_restore_color(F_color, l)
 
-    F_rec_pad = H_c_dag @ tmp
-    F_rec = F_rec_pad[:rows, :]
+    print("F_color shape:", F_color.shape)
+    print("G_blur_color shape:", G_blur_color.shape)
+    print("F_rest_color shape:", F_rest_color.shape)
 
-    return F_rec
+    # Visualizar SOLO blur y restaurada (ambas en color)
+    visualizar_blur_y_restaurada_color(G_blur_color, F_rest_color,
+                                       titulo=f"MP + Newton–Schulz (color, l={l})")
 
-
-"""
-
-Test de pseudoinversa con N-S
-m, l = 8, 3
-H = build_H(m, l, force_m=True)
-print("H shape:", H.shape)
-
-
-# 2) Pseudoinversa por NEWTON–SCHULZ
-H_dag_NS = build_H_pseudoinversa_NS(m, l, force_m=True,
-                                    tol=1e-10, iterMax=200)
-print("H^+ NS shape:", H_dag_NS.shape)
-
-test1_NS = np.allclose(H @ H_dag_NS @ H, H, atol=1e-6)
-A_NS = H_dag_NS @ H
-test2_NS = np.allclose(A_NS.T, A_NS, atol=1e-6)
-
-print("NS -> HH^+H = H ?", test1_NS)
-print("NS -> (H^+H)^T = (H^+H) ?", test2_NS)
-
-"""
