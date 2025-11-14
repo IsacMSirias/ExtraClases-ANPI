@@ -211,6 +211,124 @@ def build_H_pseudoinversa_NS(m: int, l: int,force_m: bool = True,tol: float = 1e
 
     return H_dag_NS
 
+def pad_image_horizontal(G, n):
+    m_original = G.shape[1]
+    padding = n - m_original
+    if padding <= 0:
+        return G
+    # rellenamos a la derecha con el último valor (mejor que ceros)
+    pad_block = np.tile(G[:, -1:], (1, padding))
+    return np.hstack([G, pad_block])
+
+
+def restore_horizontal(G, H_dag):
+    # G padded shape: (rows × n)
+    # H_dag.T shape: (m × n)
+    return G @ H_dag.T
+
+def crop_image_horizontal(F_rec, m_original):
+    return F_rec[:, :m_original]
+
+def psnr(F, F_rec):
+    mse = np.mean((F - F_rec)**2)
+    if mse == 0:
+        return np.inf
+    return 10 * np.log10(1.0 / mse)
+
+def isnr(F, G, F_rec):
+    num = np.sum((F - G)**2)
+    den = np.sum((F - F_rec)**2)
+    return 10 * np.log10(num / den)
+
+
+def restore_image_horizontal(G, l):
+    """
+    Aplica la reconstrucción completa horizontal:
+    1. construye H y H†
+    2. hace padding a G
+    3. multiplica G_pad @ (H†)ᵀ
+    4. recorta
+    """
+
+    rows, m = G.shape
+
+    # 1) Construir H y H†
+    H_dag = build_H_pseudoinversa_NS(m, l, force_m=True)
+    n = H_dag.shape[0]  # n columnas extendidas
+
+    # 2) Padding de G
+    G_pad = pad_image_horizontal(G, n)
+
+    # 3) Restauración
+    F_rec_pad = G_pad @ H_dag.T  # (rows × m)
+
+    # 4) Recorte
+    F_rec = crop_image_horizontal(F_rec_pad, m)
+
+    return F_rec
+
+
+def psnr(F, F_rec):
+    mse = np.mean((F - F_rec)**2)
+    if mse == 0:
+        return np.inf
+    return 10 * np.log10(1.0 / mse)
+
+
+def isnr(F, G, F_rec):
+    num = np.sum((F - G)**2)
+    den = np.sum((F - F_rec)**2)
+    return 10 * np.log10(num / den)
+
+
+def show_images(G, F_rec):
+    plt.figure(figsize=(10, 5))
+
+    plt.subplot(1, 2, 1)
+    plt.title("Imagen borrosa G")
+    plt.imshow(G, cmap='gray')
+    plt.axis('off')
+
+    plt.subplot(1, 2, 2)
+    plt.title("Reconstrucción F̃")
+    plt.imshow(F_rec, cmap='gray')
+    plt.axis('off')
+
+    plt.show()
+
+
+def build_H_vertical(r, l, force_m=True):
+    n = get_H_size(r, l, force_m)
+    H = np.zeros((r, n), dtype=float)
+    for i in range(r):
+        H[i, i:i+l] = 1.0 / l
+    return H
+
+def build_Hc_pseudoinverse_NS(r, l):
+    return build_H_pseudoinversa_NS(r, l, force_m=True)
+
+
+def restore_image_2d(G, l_vertical, l_horizontal):
+    rows, cols = G.shape
+
+    # ----- Pseudoinversa horizontal (H_r) -----
+    H_r_dag = build_H_pseudoinversa_NS(cols, l_horizontal)
+    n_cols = H_r_dag.shape[0]
+    G_pad = pad_image_horizontal(G, n_cols)
+    tmp = G_pad @ H_r_dag.T
+    tmp = tmp[:, :cols]  # recorte
+
+    # ----- Pseudoinversa vertical (H_c) -----
+    H_c_dag = build_H_pseudoinversa_NS(rows, l_vertical)
+    n_rows = H_c_dag.shape[0]
+    pad_bottom = n_rows - rows
+    if pad_bottom > 0:
+        tmp = np.vstack([tmp, np.tile(tmp[-1:], (pad_bottom, 1))])
+
+    F_rec_pad = H_c_dag @ tmp
+    F_rec = F_rec_pad[:rows, :]
+
+    return F_rec
 
 
 """
