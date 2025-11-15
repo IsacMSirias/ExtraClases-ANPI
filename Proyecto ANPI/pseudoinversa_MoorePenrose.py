@@ -40,7 +40,7 @@ def build_H(m: int, l: int) -> np.ndarray:
 
 
 def newton_schulz_pseudoinversa(A: np.ndarray,
-                                tol: float = 1e-8,
+                                tol: float = 1e-10,
                                 iterMax: int = 200):
   
     m, n = A.shape
@@ -181,8 +181,8 @@ def demo_row_restoration(F_row, l=7):
 
     # Graficar
     plt.figure(figsize=(10, 4))
-    plt.plot(F_row, label="F original", color="blue")
-    plt.plot(G_row[:m], label="G (blur)", color="red")
+    plt.plot(F_row, label="F original", color="red")
+    plt.plot(G_row[:m], label="G (blur)", color="blue")
     plt.plot(F_rec, label="F reconstruida", color="green")
     plt.title("Modelo FHᵀ y Restauración F̃ = GH⁺ (por una fila)")
     plt.xlabel("Índice")
@@ -190,6 +190,25 @@ def demo_row_restoration(F_row, l=7):
     plt.legend()
     plt.grid()
     plt.show()
+
+
+# Perfil de intensidad (otra grafica)
+def plot_intensity_profile(F_gray, G_gray, F_rest_gray):
+    y = F_gray.shape[0] // 2  # fila central
+
+    plt.figure(figsize=(12, 4))
+    plt.title("Perfil de Intensidad - Fila Central")
+
+    plt.plot(F_gray[y, :], label="Original", color="blue")
+    plt.plot(G_gray[y, :], label="Blur", color="orange")
+    plt.plot(F_rest_gray[y, :], label="Restaurada (MP)", color="red")
+
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+
+
 
 
 if __name__ == "__main__":
@@ -215,3 +234,10 @@ if __name__ == "__main__":
     F_row = color.rgb2gray(F_color)[fila, :]
 
     demo_row_restoration(F_row, l)
+
+    # Convertir a grises
+    F_gray = color.rgb2gray(img_as_float(F_color))
+    G_gray = color.rgb2gray(G_blur_color)
+    F_rest_gray = color.rgb2gray(F_rest_color)
+
+    plot_intensity_profile(F_gray, G_gray, F_rest_gray)
