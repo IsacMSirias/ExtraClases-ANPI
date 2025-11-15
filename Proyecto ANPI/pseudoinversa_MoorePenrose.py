@@ -160,6 +160,36 @@ def visualizar_blur_y_restaurada_color(G_blur_color: np.ndarray,
     plt.show()
 
 
+def demo_row_restoration(F_row, l=7):
+    """
+    Demostración del modelo matricial:
+
+        G = F H^T
+        F_rec = G H^+
+
+    Para una sola fila.
+    """
+    m = len(F_row)
+
+    # Construcción de H y su pseudoinversa
+    H = build_H(m, l)
+    H_dag = newton_schulz_pseudoinversa(H)
+
+    # Aplicar blur y reconstrucción
+    G_row = H.T @ F_row
+    F_rec = G_row @ H_dag  # (1 × m)
+
+    # Graficar
+    plt.figure(figsize=(10, 4))
+    plt.plot(F_row, label="F original", color="blue")
+    plt.plot(G_row[:m], label="G (blur)", color="red")
+    plt.plot(F_rec, label="F reconstruida", color="green")
+    plt.title("Modelo FHᵀ y Restauración F̃ = GH⁺ (por una fila)")
+    plt.xlabel("Índice")
+    plt.ylabel("Intensidad")
+    plt.legend()
+    plt.grid()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -180,3 +210,8 @@ if __name__ == "__main__":
     visualizar_blur_y_restaurada_color(G_blur_color, F_rest_color,
                                        titulo=f"MP + Newton–Schulz (color, l={l})")
 
+    # Tomar una sola fila de la imagen (por ejemplo la fila central)
+    fila = F_color.shape[0] // 2
+    F_row = color.rgb2gray(F_color)[fila, :]
+
+    demo_row_restoration(F_row, l)
