@@ -18,13 +18,10 @@ def load_image_gray(path: str) -> np.ndarray:
     return img_as_float(img).astype(np.float64)
 
 
-
 def load_image_color(path: str) -> np.ndarray:
     """Carga la imagen en color solo para mostrarla."""
     img = io.imread(path)
     return img
-
-
 
 
 def build_H(m: int, l: int) -> np.ndarray:
@@ -39,16 +36,14 @@ def build_H(m: int, l: int) -> np.ndarray:
     return H
 
 
-def newton_schulz_pseudoinversa(A: np.ndarray,
-                                tol: float = 1e-10,
-                                iterMax: int = 200):
+def newton_schulz_pseudoinversa(A: np.ndarray, tol: float = 1e-10, iterMax: int = 1000):
   
     m, n = A.shape
-    Yk = (1.0 / np.linalg.norm(A, 'fro')**2) * A.T  # (n x m)
+    Yk = (1.0 / np.linalg.norm(A, 'fro')**2) * A.T  #(n x m)
     Im = np.eye(m)
     er = np.inf
     for k in range(iterMax):
-        Yk = Yk @ (2 * Im - A @ Yk)   # (n x m)
+        Yk = Yk @ (2 * Im - A @ Yk)   #(n x m)
         er = np.linalg.norm(A @ Yk @ A - A, 'fro') / np.linalg.norm(A, 'fro')
         if er < tol:
             break
@@ -56,19 +51,16 @@ def newton_schulz_pseudoinversa(A: np.ndarray,
     return Yk
 
 
-# ======================================================
 # 3. Blur sintético y restauración MP
-# ======================================================
-
 def blur_image(F_true: np.ndarray, l: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Aplica blur sintético: G = F_true * H.
     Devuelve G, H y H^+.
     """
     r, m = F_true.shape
-    H = build_H(m, l)          # (m x n)
-    H_dag = newton_schulz_pseudoinversa(H)  # (n x m)
-    G = F_true @ H             # (r x n) imagen desenfocada
+    H = build_H(m, l) #(m x n)
+    H_dag = newton_schulz_pseudoinversa(H) #(n x m)
+    G = F_true @ H #(r x n) imagen desenfocada
     return G, H, H_dag
 
 """
@@ -90,7 +82,6 @@ F_rest_color : np.ndarray
     """
 def blur_and_restore_color(F_color: np.ndarray, l: int):
 
-    
     # Asegurar tipo float64 en [0,1]
     F_color = img_as_float(F_color).astype(np.float64)
 
@@ -98,8 +89,8 @@ def blur_and_restore_color(F_color: np.ndarray, l: int):
     assert c == 3, "Se espera una imagen RGB (3 canales)."
 
     # Construir H y su pseudoinversa UNA sola vez
-    H = build_H(m, l)                      # (m x n)
-    H_dag = newton_schulz_pseudoinversa(H)  # (n x m)
+    H = build_H(m, l) #(m x n)
+    H_dag = newton_schulz_pseudoinversa(H) #(n x m)
 
     n = H.shape[1]  # ancho de la imagen borrosa
 
@@ -109,9 +100,9 @@ def blur_and_restore_color(F_color: np.ndarray, l: int):
 
     # Procesar cada canal por separado
     for ch in range(3):
-        F_ch = F_color[:, :, ch]      # (r x m)
-        G_ch = F_ch @ H               # (r x n)  blur
-        F_rest_ch = G_ch @ H_dag      # (r x m)  restaurada
+        F_ch = F_color[:, :, ch] #(r x m)
+        G_ch = F_ch @ H # (r x n)  blur
+        F_rest_ch = G_ch @ H_dag #(r x m) restaurada
 
         G_blur_color[:, :, ch] = G_ch
         F_rest_color[:, :, ch] = F_rest_ch
@@ -132,14 +123,11 @@ def MP_restore_from_blur(G: np.ndarray, H_dag: np.ndarray) -> np.ndarray:
     return G @ H_dag
 
 
-
-def visualizar_blur_y_restaurada_color(G_blur_color: np.ndarray,
-                                       F_rest_color: np.ndarray,
-                                       titulo: str = "Blur vs Restaurada (color)"):
+def visualizar_blur_y_restaurada_color(G_blur_color: np.ndarray, F_rest_color: np.ndarray, titulo: str = "Blur vs Restaurada (color)"):
     """
     Muestra solo:
-      - Imagen borrosa sintética en color
-      - Imagen restaurada en color
+       Imagen borrosa sintética en color
+       Imagen restaurada en color
     """
     plt.figure(figsize=(12, 5))
     plt.suptitle(titulo, fontsize=16)
@@ -163,10 +151,8 @@ def visualizar_blur_y_restaurada_color(G_blur_color: np.ndarray,
 def demo_row_restoration(F_row, l=7):
     """
     Demostración del modelo matricial:
-
         G = F H^T
         F_rec = G H^+
-
     Para una sola fila.
     """
     m = len(F_row)
@@ -177,7 +163,7 @@ def demo_row_restoration(F_row, l=7):
 
     # Aplicar blur y reconstrucción
     G_row = H.T @ F_row
-    F_rec = G_row @ H_dag  # (1 × m)
+    F_rec = G_row @ H_dag  #(1 × m)
 
     # Graficar
     plt.figure(figsize=(10, 4))
@@ -192,7 +178,7 @@ def demo_row_restoration(F_row, l=7):
     plt.show()
 
 
-# Perfil de intensidad (otra grafica)
+# Perfil de intensidad (otra grafico)
 def plot_intensity_profile(F_gray, G_gray, F_rest_gray):
     y = F_gray.shape[0] // 2  # fila central
 
@@ -208,15 +194,12 @@ def plot_intensity_profile(F_gray, G_gray, F_rest_gray):
     plt.show()
 
 
-
-
-
 if __name__ == "__main__":
     # Cargar original en color
-    F_color = load_image_color(str(PATH_IMG))   # (r, m, 3)
+    F_color = load_image_color(str(PATH_IMG)) #(r, m, 3)
 
     # Parámetro de blur
-    l = 7  # puedes jugar con 3, 5, 7...
+    l = 7 # puedes jugar con 3, 5, 7...
 
     # Blur sintético y restauración EN COLOR
     G_blur_color, F_rest_color = blur_and_restore_color(F_color, l)
@@ -226,8 +209,7 @@ if __name__ == "__main__":
     print("F_rest_color shape:", F_rest_color.shape)
 
     # Visualizar SOLO blur y restaurada (ambas en color)
-    visualizar_blur_y_restaurada_color(G_blur_color, F_rest_color,
-                                       titulo=f"MP + Newton–Schulz (color, l={l})")
+    visualizar_blur_y_restaurada_color(G_blur_color, F_rest_color, titulo=f"MP + Newton–Schulz (color, l={l})")
 
     # Tomar una sola fila de la imagen (por ejemplo la fila central)
     fila = F_color.shape[0] // 2
