@@ -38,7 +38,9 @@ def build_H(m: int, l: int) -> np.ndarray:
 
 
 def newton_schulz_pseudoinversa(A: np.ndarray, tol: float = 1e-10, iterMax: int = 1000):
-    
+    # Iniciar cronómetro
+    t0 = time.perf_counter()
+
     m, n = A.shape
     Yk = (1.0 / np.linalg.norm(A, 'fro')**2) * A.T  #(n x m)
     Im = np.eye(m)
@@ -48,7 +50,11 @@ def newton_schulz_pseudoinversa(A: np.ndarray, tol: float = 1e-10, iterMax: int 
         er = np.linalg.norm(A @ Yk @ A - A, 'fro') / np.linalg.norm(A, 'fro')
         if er < tol:
             break
-    print(f"[NS] iteraciones={k+1}, error_rel={er:.3e}")
+
+    # Detener cronómetro
+    t_total = time.perf_counter() - t0
+
+    print(f"[NS] iteraciones={k+1}, error_rel={er:.3e}, tiempo={t_total:.6f} s")
     return Yk
 
 
