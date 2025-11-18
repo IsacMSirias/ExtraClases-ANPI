@@ -53,7 +53,7 @@ def newton_schulz_pseudoinversa(A: np.ndarray, tol: float = 1e-10, iterMax: int 
         
     t1 = time.time()
     t_ejecucion = t1- t0
-    print(f"[NS] iteraciones={k+1}, error_rel={er:.3e}, timepo = {t_ejecucion:.6f} s")
+    print(f"[NS] iteraciones={k+1}, error_rel={er:.3e}, tiempo = {t_ejecucion:.6f} s")
     return Yk
 
 
